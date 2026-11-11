@@ -1,0 +1,1801 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101936">
+<title>Zekâ Akademisi</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+:root{
+ --bg:#0b1128;
+ --bg2:#121a38;
+ --card:#171f42;
+ --card2:#202950;
+ --text:#f7f8ff;
+ --muted:#aab3d0;
+ --purple:#805cff;
+ --cyan:#28d8d0;
+ --yellow:#ffd35a;
+ --coral:#ff6f78;
+ --green:#45df91;
+ --line:rgba(255,255,255,.09);
+ --shadow:0 14px 35px rgba(0,0,0,.28);
+ --radius:20px;
+}
+*{box-sizing:border-box}
+body{
+ margin:0;
+ background:
+ radial-gradient(circle at 10% 0%,rgba(128,92,255,.22),transparent 30%),
+ radial-gradient(circle at 95% 15%,rgba(40,216,208,.13),transparent 28%),
+ var(--bg);
+ color:var(--text);
+ font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+ min-height:100vh;
+}
+button,input,select,textarea{font:inherit}
+button{
+ border:0;
+ cursor:pointer;
+ color:white;
+ font-weight:800;
+}
+.app{max-width:1100px;margin:auto;padding-bottom:40px}
+header{
+ position:sticky;top:0;z-index:20;
+ background:rgba(11,17,40,.92);
+ backdrop-filter:blur(18px);
+ border-bottom:1px solid var(--line);
+ padding:14px 14px 12px;
+}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{
+ width:48px;height:48px;border-radius:15px;
+ display:grid;place-items:center;
+ background:linear-gradient(135deg,var(--purple),var(--cyan));
+ font-size:25px;
+ box-shadow:0 8px 24px rgba(128,92,255,.3);
+}
+.brand h1{margin:0;font-size:20px}
+.brand p{margin:2px 0 0;color:var(--muted);font-size:12px}
+.stats{
+ display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px
+}
+.stat{
+ background:rgba(255,255,255,.055);
+ border:1px solid var(--line);
+ border-radius:14px;padding:9px;text-align:center
+}
+.stat b{display:block;font-size:18px}
+.stat span{font-size:10px;color:var(--muted)}
+nav{
+ display:flex;gap:7px;overflow-x:auto;padding:10px 0 2px;
+ scrollbar-width:none
+}
+nav::-webkit-scrollbar{display:none}
+nav button{
+ flex:0 0 auto;background:rgba(255,255,255,.055);
+ border:1px solid var(--line);padding:10px 13px;border-radius:13px;font-size:12px
+}
+nav button.active{background:linear-gradient(135deg,var(--purple),#a052d8);border-color:transparent}
+
+main{padding:15px}
+section{display:none}
+section.active{display:block}
+.hero{
+ padding:22px;border-radius:25px;
+ background:linear-gradient(135deg,#1a2450,#171a3b);
+ border:1px solid var(--line);box-shadow:var(--shadow);
+ margin-bottom:14px;
+}
+.hero h2{margin:0 0 6px;font-size:26px}
+.hero p{margin:0;color:var(--muted);line-height:1.55}
+.badge{
+ display:inline-flex;padding:6px 10px;border-radius:20px;
+ background:rgba(40,216,208,.12);color:var(--cyan);font-size:11px;font-weight:900;
+ margin-bottom:10px
+}
+.grid{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px
+}
+@media(min-width:750px){.grid{grid-template-columns:repeat(4,1fr)}}
+.card{
+ background:linear-gradient(145deg,var(--card),#141b37);
+ border:1px solid var(--line);
+ border-radius:var(--radius);
+ padding:16px;
+ box-shadow:var(--shadow);
+}
+.card h3{margin:8px 0 5px;font-size:16px}
+.card p{margin:0;color:var(--muted);font-size:12px;line-height:1.45}
+.icon{
+ width:46px;height:46px;border-radius:15px;
+ display:grid;place-items:center;font-size:23px;
+ background:rgba(128,92,255,.15)
+}
+.btn{
+ width:100%;min-height:46px;border-radius:14px;
+ padding:11px 13px;margin-top:10px;
+ background:linear-gradient(135deg,var(--purple),#5f45d8);
+ box-shadow:0 7px 18px rgba(128,92,255,.2)
+}
+.btn.secondary{background:rgba(255,255,255,.07);border:1px solid var(--line)}
+.btn.cyan{background:linear-gradient(135deg,#16bdb9,#208bd8)}
+.btn.green{background:linear-gradient(135deg,#20bd73,#35d991)}
+.btn.yellow{background:linear-gradient(135deg,#dba92e,#ffca42);color:#171717}
+.btn.coral{background:linear-gradient(135deg,#ec5966,#d64c94)}
+.smallbtn{
+ min-height:38px;padding:8px 11px;border-radius:11px;background:rgba(255,255,255,.08);
+ border:1px solid var(--line);font-size:12px
+}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row>*{flex:1;min-width:120px}
+.field{margin-bottom:10px}
+.field label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;font-weight:700}
+input,select,textarea{
+ width:100%;background:#0e1530;color:white;
+ border:1px solid var(--line);border-radius:12px;padding:12px;outline:none
+}
+input:focus,select:focus,textarea:focus{border-color:var(--purple)}
+.panel{
+ background:rgba(255,255,255,.045);border:1px solid var(--line);
+ border-radius:17px;padding:14px;margin-bottom:12px
+}
+.panel h3{margin:0 0 11px}
+.titleline{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px}
+.titleline h2{margin:0;font-size:20px}
+.muted{color:var(--muted)}
+.empty{text-align:center;color:var(--muted);padding:28px}
+.list{display:grid;gap:8px}
+.item{
+ background:rgba(255,255,255,.045);border:1px solid var(--line);
+ border-radius:14px;padding:11px
+}
+.itemtop{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.itemtop b{font-size:14px}
+.item small{color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:9px 6px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--muted);font-size:10px;text-transform:uppercase}
+.tag{
+ display:inline-block;padding:4px 7px;border-radius:8px;
+ background:rgba(128,92,255,.15);font-size:10px;font-weight:800
+}
+.win{color:var(--green);font-weight:900}
+.loss{color:var(--coral);font-weight:900}
+.draw{color:var(--yellow);font-weight:900}
+
+/* Oyunlar */
+.gameboard{overflow:auto}
+.sudoku{
+ display:grid;grid-template-columns:repeat(9,1fr);
+ max-width:470px;margin:12px auto;border:3px solid #7d83a5
+}
+.sudoku input{
+ min-width:35px;aspect-ratio:1;padding:0;text-align:center;
+ border-radius:0;border:1px solid #394264;font-size:17px;font-weight:800
+}
+.sudoku input:nth-child(3n){border-right:2px solid #8a91b5}
+.sudoku input:nth-child(n+19):nth-child(-n+27),
+.sudoku input:nth-child(n+46):nth-child(-n+54){border-bottom:2px solid #8a91b5}
+.kgrid{display:grid;grid-template-columns:repeat(6,1fr);max-width:430px;margin:auto}
+.kcell{position:relative;aspect-ratio:1;border:1px solid #485174;background:#121936}
+.kcell.cageTop{border-top:3px solid var(--yellow)}
+.kcell.cageLeft{border-left:3px solid var(--yellow)}
+.kcell.cageRight{border-right:3px solid var(--yellow)}
+.kcell.cageBottom{border-bottom:3px solid var(--yellow)}
+.kcell input{width:100%;height:100%;border:0;background:transparent;text-align:center;font-size:18px;font-weight:900}
+.cageLabel{position:absolute;left:3px;top:2px;font-size:9px;color:var(--yellow);z-index:2}
+.apartment{
+ display:grid;grid-template-columns:repeat(7,1fr);gap:3px;
+ max-width:500px;margin:auto
+}
+.apartment div{min-height:42px}
+.clue{
+ display:grid;place-items:center;color:var(--yellow);font-weight:900;font-size:12px
+}
+.acell input{
+ width:100%;height:100%;min-height:42px;text-align:center;padding:0;font-weight:900
+}
+.rebus{
+ min-height:180px;display:grid;place-items:center;
+ border-radius:20px;background:#0d1430;border:1px solid var(--line);
+ font-size:38px;font-weight:900;text-align:center;padding:20px
+}
+.answerbox{max-width:500px;margin:12px auto}
+.feedback{
+ padding:12px;border-radius:12px;margin-top:10px;display:none
+}
+.feedback.ok{display:block;background:rgba(69,223,145,.12);color:var(--green)}
+.feedback.no{display:block;background:rgba(255,111,120,.12);color:#ff9aa0}
+
+/* Lig */
+.match{
+ display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:stretch
+}
+.player{
+ padding:15px;border-radius:18px;background:#111832;border:1px solid var(--line);
+ text-align:center
+}
+.player .avatar{font-size:28px}
+.player b{display:block;margin-top:5px}
+.vs{display:grid;place-items:center;font-weight:1000;color:var(--yellow)}
+.question{
+ font-size:17px;line-height:1.5;font-weight:800;
+ background:linear-gradient(135deg,#222d59,#171f42);
+ border-radius:18px;padding:17px;margin:12px 0
+}
+.timer{text-align:center;color:var(--cyan);font-weight:900;font-size:18px}
+.scorecards{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.scorecard{
+ text-align:center;background:rgba(255,255,255,.045);padding:12px;border-radius:15px
+}
+.scorecard b{font-size:24px;display:block}
+
+/* Modal / winner */
+.modal{
+ position:fixed;inset:0;background:rgba(3,6,18,.82);z-index:100;
+ display:none;align-items:center;justify-content:center;padding:20px
+}
+.modal.show{display:flex}
+.modalbox{
+ width:min(500px,100%);background:linear-gradient(145deg,#202b5d,#121832);
+ border:1px solid var(--line);border-radius:28px;padding:25px;text-align:center;
+ box-shadow:0 25px 80px #000
+}
+.trophy{font-size:70px;animation:trophy 1s infinite alternate}
+@keyframes trophy{to{transform:scale(1.12) rotate(4deg)}}
+.winnername{
+ font-size:30px;font-weight:1000;
+ background:linear-gradient(90deg,var(--yellow),#fff,var(--cyan));
+ -webkit-background-clip:text;background-clip:text;color:transparent
+}
+.confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.confetti i{
+ position:absolute;width:8px;height:18px;background:var(--yellow);
+ animation:fall 2.4s linear forwards
+}
+@keyframes fall{
+ 0%{transform:translateY(-30px) rotate(0);opacity:1}
+ 100%{transform:translateY(100vh) rotate(720deg);opacity:0}
+}
+
+/* Takım yarışı */
+.teamSetup{margin-top:12px;padding:15px;border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.035)}
+.teamSetupGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.teamPick{padding:12px;border:1px solid var(--line);border-radius:15px;background:#111832;min-width:0}
+.teamPick h4{margin:0 0 8px;color:var(--cyan)}
+.teamMembers{display:grid;grid-template-columns:1fr;gap:6px;max-height:220px;overflow:auto;margin-top:10px}
+.teamMember{display:flex;gap:8px;align-items:center;padding:7px 8px;border-radius:9px;background:rgba(255,255,255,.045);font-size:13px}
+.teamMember input{accent-color:var(--cyan);width:17px;height:17px}
+.teamBadge{padding:10px;border-radius:14px;border:1px solid var(--line);background:rgba(40,216,208,.08);text-align:center;min-width:0}
+.teamBadge b{display:block;font-size:17px;overflow-wrap:anywhere}
+.teamBadge small{display:block;color:var(--muted);margin-top:5px;line-height:1.45}
+.teamWin .modalbox{animation:teamWinPop .55s cubic-bezier(.2,.8,.2,1) both;border:2px solid var(--yellow);box-shadow:0 0 0 5px rgba(255,211,90,.12),0 0 55px rgba(255,211,90,.3),0 25px 80px #000}
+.teamWin .trophy{animation:teamTrophy .65s ease-in-out infinite alternate}
+@keyframes teamWinPop{0%{transform:scale(.55) rotate(-4deg);opacity:0}75%{transform:scale(1.04) rotate(1deg);opacity:1}100%{transform:scale(1);opacity:1}}
+@keyframes teamTrophy{to{transform:translateY(-9px) scale(1.16) rotate(8deg);filter:drop-shadow(0 0 16px #ffd35a)}}
+@media(max-width:560px){.teamSetupGrid{grid-template-columns:1fr}.teamMembers{max-height:180px}}
+
+/* proof */
+.proof{
+ border-left:3px solid var(--cyan);padding-left:12px;margin-top:10px;
+ color:#dce2fa;line-height:1.6;font-size:13px
+}
+
+/* =========================================================
+   ONLINE MİNİ DÜELLO
+========================================================= */
+.onlinePanel{
+ background:linear-gradient(145deg,#17264e,#121b39);
+ border:1px solid rgba(40,216,208,.22);
+ box-shadow:0 18px 45px rgba(0,0,0,.28);
+}
+.onlineBadge{display:inline-flex;padding:6px 10px;border-radius:20px;background:rgba(69,223,145,.12);color:var(--green);font-size:11px;font-weight:900}
+.onlineCode{
+ font-size:32px;letter-spacing:7px;font-weight:1000;text-align:center;
+ padding:15px 10px;border-radius:17px;background:#0b122b;
+ border:1px dashed rgba(40,216,208,.5);margin:12px 0;color:var(--cyan)
+}
+.onlineStatus{padding:11px 13px;border-radius:13px;background:rgba(255,255,255,.045);border:1px solid var(--line);font-size:12px;line-height:1.5}
+.onlinePlayers{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.onlinePlayer{background:#0e1631;border:1px solid var(--line);border-radius:15px;padding:12px;text-align:center}
+.onlinePlayer.ready{border-color:rgba(69,223,145,.45)}
+.onlinePlayer b{display:block;font-size:14px}
+.onlinePlayer small{color:var(--muted)}
+.onlineQ{font-size:18px;line-height:1.55;font-weight:900;background:linear-gradient(135deg,#222d59,#171f42);border-radius:18px;padding:18px;margin:12px 0}
+.onlineOpponent{display:flex;justify-content:space-between;gap:8px;align-items:center;background:rgba(255,255,255,.045);border:1px solid var(--line);border-radius:14px;padding:10px 12px;font-size:12px}
+.onlineOpponent strong{color:var(--cyan)}
+.onlineResult{padding:15px;border-radius:17px;background:rgba(69,223,145,.08);border:1px solid rgba(69,223,145,.25);text-align:center}
+.onlineResult h3{margin:0 0 6px;font-size:22px}
+.onlineResult .big{font-size:28px;font-weight:1000}
+.onlineWarn{color:#ffd35a;font-size:11px;line-height:1.5}
+@media(max-width:520px){.onlinePlayers{grid-template-columns:1fr}.onlineCode{font-size:27px;letter-spacing:5px}}
+
+</style>
+</head>
+
+<body>
+<div class="app">
+
+<header>
+ <div class="brand">
+  <div class="logo">🧠</div>
+  <div>
+   <h1>Zekâ Akademisi</h1>
+   <p>Matematik • Mantık • Zekâ • Oyun</p>
+  </div>
+ </div>
+
+ <div class="stats">
+  <div class="stat"><b id="score">0</b><span>TOPLAM PUAN</span></div>
+  <div class="stat"><b id="solved">0</b><span>ÇÖZÜLEN</span></div>
+  <div class="stat"><b id="streak">0</b><span>SERİ</span></div>
+ </div>
+
+ <nav id="nav">
+  <button data-sec="home" class="active">Ana Sayfa</button>
+  <button data-sec="league">🏆 Pro Lig</button>
+  <button data-sec="classes">🏫 Sınıflarım</button>
+  <button data-sec="games">🧩 Zekâ Oyunları</button>
+  <button data-sec="math">🔢 Matematik</button>
+  <button data-sec="why">💡 Neden Böyle?</button>
+  <button data-sec="weekly">⭐ Haftanın Sorusu</button>
+  <button data-sec="reports">📊 Raporlar</button>
+ </nav>
+</header>
+
+<main>
+
+<!-- ANA SAYFA -->
+<section id="home" class="active">
+ <div class="hero">
+  <span class="badge">ZEKÂ AKADEMİSİ PRO</span>
+  <h2>Düşün. Keşfet. Yarış.</h2>
+  <p>
+   Matematiksel düşünme, mantık, gerçek zekâ oyunları ve
+   öğrenciler arası rekabeti tek yerde birleştiren öğretmen-öğrenci platformu.
+  </p>
+ </div>
+
+ <div class="grid">
+  <div class="card"><div class="icon">🏆</div><h3>Zekâ Pro Ligi</h3><p>İki öğrenci, her düelloda havuzdan seçilen 5 farklı ortaokul düzeyi soru, tek kazanan.</p><button class="btn" onclick="go('league')">Lige Gir</button></div>
+  <div class="card"><div class="icon">🏫</div><h3>Sınıflarım</h3><p>Sınıflarını ve öğrencilerini yönet, fikstür oluştur.</p><button class="btn cyan" onclick="go('classes')">Sınıfları Yönet</button></div>
+  <div class="card"><div class="icon">🧩</div><h3>Zekâ Oyunları</h3><p>Sudoku, Kendoku, Apartman ve Resfebe.</p><button class="btn coral" onclick="go('games')">Oyunlara Git</button></div>
+  <div class="card"><div class="icon">💡</div><h3>Neden Böyle?</h3><p>Formülleri ezberlemek yerine neden doğru olduklarını keşfet.</p><button class="btn yellow" onclick="go('why')">Keşfet</button></div>
+ </div>
+
+ <div class="panel" style="margin-top:14px">
+  <div class="titleline"><h2>⚡ Hızlı Başlangıç</h2></div>
+  <div class="row">
+   <button class="btn" onclick="go('classes')">🏫 Sınıf Oluştur</button>
+   <button class="btn cyan" onclick="quickLeague()">🏆 Hemen Maç Başlat</button>
+   <button class="btn secondary" onclick="go('weekly')">⭐ Haftanın Sorusu</button>
+  </div>
+ </div>
+</section>
+
+<!-- SINIFLAR -->
+<section id="classes">
+ <div class="titleline"><h2>🏫 Sınıflarım</h2><span class="tag" id="classCount">0 sınıf</span></div>
+
+ <div class="panel">
+  <h3>Yeni Sınıf</h3>
+  <div class="row">
+   <div class="field"><label>Seviye</label>
+    <select id="grade"><option>5</option><option>6</option><option>7</option><option>8</option></select>
+   </div>
+   <div class="field"><label>Şube</label><input id="branch" value="A" maxlength="2"></div>
+  </div>
+  <button class="btn" onclick="addClass()">➕ Sınıf Ekle</button>
+ </div>
+
+ <div class="panel">
+  <h3>Öğrenci Aktar</h3>
+  <p class="muted" style="font-size:12px">
+   Excel/CSV dosyasında ilk sütundaki isimler alınır. Metin dosyasında her satır bir öğrencidir.
+  </p>
+  <input type="file" id="studentFile" accept=".xlsx,.xls,.csv,.txt">
+  <div class="row">
+   <button class="btn cyan" onclick="importStudents()">📥 Dosyadan Aktar</button>
+   <button class="btn secondary" onclick="photoHelp()">📷 Fotoğraf</button>
+  </div>
+  <div class="field" style="margin-top:10px">
+   <label>Öğrencileri toplu yapıştır — her satıra bir öğrenci</label>
+   <textarea id="bulkStudents" rows="6" placeholder="Ahmet Yılmaz
+Ayşe Demir
+Mehmet Kaya
+Zeynep Çelik"></textarea>
+  </div>
+  <button class="btn green" onclick="addBulkStudents()">👥 Yapıştırılan Öğrencileri Sınıfa Ekle</button>
+ </div>
+
+ <div id="classList" class="list"></div>
+</section>
+
+<!-- LİG -->
+<section id="league">
+
+<!-- ÖĞRETMENSİZ ONLINE MİNİ DÜELLO -->
+<div class="panel onlinePanel" id="onlineMiniDuelPanel">
+ <div class="titleline">
+  <div>
+   <span class="onlineBadge">● CANLI • ÖĞRETMENSİZ</span>
+   <h3 style="margin:8px 0 3px">👥 Arkadaşınla Mini Düello</h3>
+   <div class="muted" style="font-size:12px">İki farklı telefondan, öğretmen girişi olmadan gerçek zamanlı yarış.</div>
+  </div>
+ </div>
+ <div id="onlineMiniDuelBody">
+  <div class="row">
+   <button class="btn cyan" onclick="ZAOnline.create()">🎯 Düello Oluştur</button>
+   <button class="btn" onclick="ZAOnline.showJoin()">🔑 Koda Katıl</button>
+  </div>
+  <div class="onlineWarn" style="margin-top:9px">İki cihazın birbirini görmesi için internet bağlantısı gerekir. Düello bağlantısı Zekâ Pro Ligi sunucusu üzerinden sağlanır.</div>
+ </div>
+</div>
+
+ <div class="hero">
+  <span class="badge">ZEKÂ PRO LİGİ</span>
+  <h2>🏆 Zekâ Pro Ligi Yarışmaları</h2>
+  <p>Bireysel düello, tek başına çözüm ve takım yarışı. Her maçta 10 farklı soru; takım yarışında takım adları ve tüm üyeler görünür.</p>
+ </div>
+
+ <div class="panel">
+  <h3>Maç Oluştur</h3>
+  <div class="row">
+   <div class="field"><label>Yarışma</label><select id="matchMode" onchange="toggleMatchMode()"><option value="duel">🏆 İki Kişilik Düello</option><option value="team">👥 Takım Yarışı</option><option value="solo">🧠 Tek Başına</option></select></div>
+   <div class="field"><label>Sınıf</label><select id="matchClass" onchange="fillPlayers()"></select></div>
+   <div class="field" id="p1Wrap"><label>Oyuncu 1</label><select id="p1"></select></div>
+   <div class="field" id="p2Wrap"><label>Oyuncu 2</label><select id="p2"></select></div>
+  </div>
+  <div class="row">
+   <button class="btn" onclick="startMatch()">🏆 Maçı Başlat</button>
+   <button id="randomMatchBtn" class="btn cyan" onclick="randomMatch()">🎲 Rastgele Eşleştir</button>
+   <button id="fixtureBtn" class="btn secondary" onclick="generateFixture()">📅 Fikstür Oluştur</button>
+  </div>
+  <div id="teamSetup" class="teamSetup" style="display:none"></div>
+ </div>
+
+ <div class="panel">
+  <div class="titleline"><h3>📅 Aktif Fikstür</h3></div>
+  <div id="fixture"></div>
+ </div>
+
+ <div class="panel">
+  <div class="titleline"><h3>🥇 Puan Durumu</h3></div>
+  <div id="ranking"></div>
+ </div>
+
+ <div class="panel"><h3>📚 Resmî soru kaynakları</h3><p style="color:var(--muted);font-size:13px">Her sınıfın havuzunda 150 soru (5–8. sınıflar toplam 600) bulunur. Resmî MEB/PISA kaynakları aşağıdaki bağlantılardadır; uygulamadaki özgün sorular kaynak yaklaşımından esinlenmiştir, birebir resmî soru olarak sunulmaz.</p><div class="row"><a class="btn secondary" href="https://odsgm.meb.gov.tr/www/5-6-ve-7-sinif-duzeylerinde-beceri-temelli-sorular-yayimlanmistir/icerik/491" target="_blank" rel="noopener">MEB 5–7. sınıf beceri soruları ↗</a><a class="btn secondary" href="https://odsgm.meb.gov.tr/www/7-sinif-beceri-temelli-testler/icerik/490" target="_blank" rel="noopener">MEB 7. sınıf testleri ↗</a><a class="btn secondary" href="https://odsgm.meb.gov.tr/www/temel-egitim-kitaplari/icerik/834/1000" target="_blank" rel="noopener">MEB temel eğitim kitapları ↗</a><a class="btn secondary" href="https://pisa.meb.gov.tr/www/yayimlanan-sorular/icerik/6" target="_blank" rel="noopener">PISA yayımlanmış sorular ↗</a><a class="btn secondary" href="https://pisa.meb.gov.tr/meb_iys_dosyalar/2022_01/26105834_PISA_AlYYtYrma_Materyali_-_Dikey.pdf" target="_blank" rel="noopener">PISA 2022 alıştırma kitapçığı ↗</a><a class="btn secondary" href="https://trabzon.meb.gov.tr/ortaksinavlar/temel.html" target="_blank" rel="noopener">Trabzon İl MEM kaynakları ↗</a><a class="btn secondary" href="https://trabzon.meb.gov.tr/www/yapay-zeka-destekli-quotmebiquot-platformu-ortaokul-ogrencilerinin-kullanimina-sunuldu/icerik/4303" target="_blank" rel="noopener">MEBİ beceri temelli içerikler ↗</a></div></div>
+ <div id="matchArea"></div>
+</section>
+
+<!-- OYUNLAR -->
+<section id="games">
+ <div class="hero">
+  <span class="badge">GERÇEK ZEKÂ OYUNLARI</span>
+  <h2>Zekâ Oyunları</h2>
+  <p>Her oyun farklı bir düşünme becerisini çalıştırır.</p>
+ </div>
+
+ <div class="grid">
+  <div class="card"><div class="icon">🔢</div><h3>Sudoku</h3><p>9×9 mantık ve çıkarım.</p><button class="btn" onclick="startGame('sudoku')">Başla</button></div>
+  <div class="card"><div class="icon">➕</div><h3>Kendoku</h3><p>6×6 sayı yerleştirme ve işlem bölgeleri.</p><button class="btn cyan" onclick="startGame('kendoku')">Başla</button></div>
+  <div class="card"><div class="icon">🏢</div><h3>Apartman</h3><p>Görünürlük ipuçlarıyla mantık çözümü.</p><button class="btn coral" onclick="startGame('apartman')">Başla</button></div>
+  <div class="card"><div class="icon">🔤</div><h3>Resfebe</h3><p>Kelimeyi görsel ve sembollerden çıkar.</p><button class="btn yellow" onclick="startGame('resfebe')">Başla</button></div>
+ </div>
+</section>
+
+<section id="game">
+ <div class="titleline">
+  <h2 id="gameTitle">Oyun</h2>
+  <span class="tag" id="gameMeta"></span>
+ </div>
+ <div class="timer" id="timer">00:00</div>
+ <div id="gameArea" class="gameboard"></div>
+ <div class="answerbox">
+  <button class="btn yellow" onclick="checkCurrentGame()">✓ Cevabı Kontrol Et</button>
+  <button class="btn secondary" onclick="hintGame()">💡 İpucu</button>
+  <button class="btn secondary" onclick="startGame(currentGameType)">🔄 Yeni Bulmaca</button>
+  <div id="gameFeedback" class="feedback"></div>
+ </div>
+</section>
+
+<!-- MATEMATİK -->
+<section id="math">
+ <div class="hero">
+  <span class="badge">MATEMATİKSEL DÜŞÜNME</span>
+  <h2>Matematik</h2>
+  <p>Buradaki sorular doğrudan işlem yaptırmak yerine düşündürür.</p>
+ </div>
+ <div id="mathList" class="list"></div>
+</section>
+
+<!-- NEDEN BÖYLE -->
+<section id="why">
+ <div class="hero">
+  <span class="badge">KEŞFET • TAHMİN ET • İSPATLA</span>
+  <h2>Neden Böyle?</h2>
+  <p>Matematiğin arkasındaki fikirleri ezberden değil, gerekçesiyle öğren.</p>
+ </div>
+ <div id="proofList" class="list"></div>
+</section>
+
+<!-- HAFTANIN SORUSU -->
+<section id="weekly">
+ <div class="hero">
+  <span class="badge">⭐ HAFTANIN SORUSU</span>
+  <h2>Bu haftanın meydan okuması</h2>
+  <p>Tek soru. Birden fazla düşünme yolu. Amaç yalnızca cevabı bulmak değil, nedenini açıklamak.</p>
+ </div>
+
+ <div class="panel">
+  <h3>Üç Kutu Problemi</h3>
+  <p style="line-height:1.65">
+   Üç kutunun üzerinde <b>A, B, C</b> yazıyor. Kutulardan yalnızca birinde ödül var.
+   <br><br>
+   A kutusunun üzerinde: “Ödül B'de.”
+   <br>
+   B kutusunun üzerinde: “Ödül bu kutuda değil.”
+   <br>
+   C kutusunun üzerinde: “Ödül A'da değil.”
+   <br><br>
+   Bu üç cümleden <b>yalnızca biri doğruysa</b> ödül hangi kutudadır?
+  </p>
+  <div class="field"><label>Cevabın</label><select id="weeklyAnswer"><option>A</option><option>B</option><option>C</option></select></div>
+  <button class="btn" onclick="checkWeekly()">Cevabı Kontrol Et</button>
+  <div id="weeklyFeedback" class="feedback"></div>
+ </div>
+</section>
+
+<!-- RAPORLAR -->
+<section id="reports">
+ <div class="hero">
+  <span class="badge">ÖĞRETMEN MERKEZİ</span>
+  <h2>Raporlar ve Yedekleme</h2>
+  <p>Maçları, öğrencileri ve lig verilerini dışarı aktar. Verilerini ayrıca tek dosyada yedekle.</p>
+ </div>
+
+ <div class="grid">
+  <div class="card"><div class="icon">📄</div><h3>PDF Rapor</h3><p>Maç ve puan durumu raporunu PDF olarak oluştur.</p><button class="btn" onclick="downloadPDF()">PDF İndir</button></div>
+  <div class="card"><div class="icon">📊</div><h3>CSV Rapor</h3><p>Maç sonuçlarını Excel'de açılabilir biçimde indir.</p><button class="btn cyan" onclick="downloadCSV()">CSV İndir</button></div>
+  <div class="card"><div class="icon">💾</div><h3>Yedekle</h3><p>Tüm sınıf, öğrenci, fikstür ve sonuçları tek JSON dosyasına aktar.</p><button class="btn green" onclick="backup()">Yedeği İndir</button></div>
+  <div class="card"><div class="icon">♻️</div><h3>Geri Yükle</h3><p>Önceden alınmış JSON yedeğini geri yükle.</p><input type="file" id="backupFile" accept=".json" onchange="restoreBackup(this)"></div>
+ </div>
+
+ <div class="panel" style="margin-top:14px">
+  <div class="titleline"><h3>📋 Maç Geçmişi</h3><span class="tag" id="matchCount">0 maç</span></div>
+  <div id="historyReport"></div>
+ </div>
+</section>
+
+</main>
+</div>
+
+<div id="winnerModal" class="modal">
+ <div class="modalbox">
+  <div class="trophy">🏆</div>
+  <div class="badge">MAÇ TAMAMLANDI</div>
+  <div class="winnername" id="winnerName">Kazanan</div>
+  <p id="winnerDetail" class="muted"></p>
+  <div class="scorecards">
+   <div class="scorecard"><span id="winP1">0</span><small>Oyuncu 1</small></div>
+   <div class="scorecard"><span id="winP2">0</span><small>Oyuncu 2</small></div>
+  </div>
+  <button class="btn" onclick="closeWinner()">Tamam</button>
+ </div>
+ <div class="confetti" id="confetti"></div>
+</div>
+
+<script>
+/* =========================================================
+   VERİ
+========================================================= */
+const LS="zekaAkademisi_PRO_2026";
+
+const defaultState={
+ score:0,
+ solved:0,
+ streak:0,
+ classes:[],
+ fixtures:[],
+ matches:[],
+ history:[],
+ games:{sudoku:[],kendoku:[],apartman:[],resfebe:[]}
+};
+
+let state=load();
+let currentGameType=null;
+let currentPuzzle=null;
+let gameTimer=null;
+let gameSeconds=0;
+let match=null;
+
+function load(){
+ try{
+  const x=JSON.parse(localStorage.getItem(LS));
+  return x?Object.assign(structuredClone(defaultState),x):structuredClone(defaultState);
+ }catch(e){return structuredClone(defaultState)}
+}
+function save(){
+ localStorage.setItem(LS,JSON.stringify(state));
+ updateStats();
+}
+function updateStats(){
+ document.getElementById("score").textContent=state.score||0;
+ document.getElementById("solved").textContent=state.solved||0;
+ document.getElementById("streak").textContent=state.streak||0;
+}
+function go(id){
+ document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
+ const el=document.getElementById(id);
+ if(el)el.classList.add("active");
+ document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.sec===id));
+ if(id==="classes")renderClasses();
+ if(id==="league")renderLeague();
+ if(id==="reports")renderReports();
+ if(id==="math")renderMath();
+ if(id==="why")renderProofs();
+ window.scrollTo({top:0,behavior:"smooth"});
+}
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>go(b.dataset.sec));
+updateStats();
+
+/* =========================================================
+   SINIFLAR
+========================================================= */
+function addClass(){
+ const grade=document.getElementById("grade").value;
+ const branch=(document.getElementById("branch").value||"A").trim().toUpperCase();
+ const name=grade+"-"+branch;
+ if(state.classes.some(c=>c.name===name)){
+  alert("Bu sınıf zaten var.");
+  return;
+ }
+ state.classes.push({id:uid(),name,grade,branch,students:[],ranking:{}});
+ save();
+ renderClasses();
+ fillClassSelects();
+}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
+function renderClasses(){
+ document.getElementById("classCount").textContent=state.classes.length+" sınıf";
+ const box=document.getElementById("classList");
+ if(!state.classes.length){
+  box.innerHTML='<div class="empty">Henüz sınıf eklenmedi.</div>';return;
+ }
+ box.innerHTML=state.classes.map(c=>`
+  <div class="item">
+   <div class="itemtop">
+    <b>🏫 ${esc(c.name)}</b>
+    <span class="tag">${c.students.length} öğrenci</span>
+   </div>
+   <div class="muted" style="margin-top:7px">${c.students.map(esc).join(" • ")||"Öğrenci yok"}</div>
+   <div class="row" style="margin-top:9px">
+    <button class="smallbtn" onclick="addStudent('${c.id}')">➕ Öğrenci</button>
+    <button class="smallbtn" onclick="editStudents('${c.id}')">✏️ Düzenle</button>
+    <button class="smallbtn" onclick="makeFixtureFor('${c.id}')">📅 Fikstür</button>
+    <button class="smallbtn" onclick="deleteClass('${c.id}')">🗑️ Sil</button>
+   </div>
+  </div>`).join("");
+}
+function addStudent(id){
+ const c=state.classes.find(x=>x.id===id);
+ const n=prompt(c.name+" için öğrenci adı:");
+ if(!n)return;
+ n.trim().split(/\r?\n/).map(x=>x.trim()).filter(Boolean).forEach(x=>{
+  if(!c.students.includes(x))c.students.push(x);
+ });
+ save();renderClasses();fillClassSelects();
+}
+function editStudents(id){
+ const c=state.classes.find(x=>x.id===id);
+ const val=prompt("Her satıra bir öğrenci adı yazın:",c.students.join("\n"));
+ if(val===null)return;
+ c.students=val.split(/\r?\n|,/).map(x=>x.trim()).filter(Boolean);
+ c.students=[...new Set(c.students)];
+ save();renderClasses();fillClassSelects();
+}
+function deleteClass(id){
+ const c=state.classes.find(x=>x.id===id);
+ if(!confirm(c.name+" sınıfı silinsin mi?"))return;
+ state.classes=state.classes.filter(x=>x.id!==id);
+ state.fixtures=state.fixtures.filter(x=>x.classId!==id);
+ save();renderClasses();fillClassSelects();renderLeague();
+}
+function importStudents(){
+ const file=document.getElementById("studentFile").files[0];
+ if(!file){alert("Önce dosya seç.");return}
+ if(!state.classes.length){alert("Önce en az bir sınıf oluştur.");return}
+ const c=state.classes[state.classes.length-1];
+
+ if(/\.txt$|\.csv$/i.test(file.name)){
+  const r=new FileReader();
+  r.onload=e=>{
+   const names=e.target.result.split(/\r?\n|,/).map(x=>x.trim()).filter(Boolean);
+   c.students=[...new Set(c.students.concat(names))];
+   save();renderClasses();fillClassSelects();
+   alert(names.length+" öğrenci aktarıldı. "+c.name+" sınıfına eklendi.");
+  };
+  r.readAsText(file);
+ }else if(window.XLSX){
+  const r=new FileReader();
+  r.onload=e=>{
+   const wb=XLSX.read(e.target.result,{type:"array"});
+   const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1});
+   const names=[];
+   rows.forEach(row=>{
+    if(row&&row[0]!==undefined){
+     const n=String(row[0]).trim();
+     if(n && n.toLowerCase()!=="ad soyad" && n.toLowerCase()!=="öğrenci")names.push(n);
+    }
+   });
+   c.students=[...new Set(c.students.concat(names))];
+   save();renderClasses();fillClassSelects();
+   alert(names.length+" öğrenci aktarıldı.");
+  };
+  r.readAsArrayBuffer(file);
+ }else alert("Bu dosya türü desteklenmiyor.");
+}
+function addBulkStudents(){
+ const box=document.getElementById("bulkStudents");
+ const text=box.value||"";
+ if(!text.trim()){alert("Önce öğrenci isimlerini yapıştır.");return}
+ if(!state.classes.length){alert("Önce en az bir sınıf oluştur.");return}
+ const c=state.classes[state.classes.length-1];
+ const names=text.split(/\r?\n|,/).map(x=>x.trim()).filter(Boolean);
+ const before=c.students.length;
+ c.students=[...new Set(c.students.concat(names))];
+ const added=c.students.length-before;
+ save();renderClasses();fillClassSelects();
+ box.value="";
+ alert(added+" öğrenci "+c.name+" sınıfına eklendi.");
+}
+function photoHelp(){
+ alert("Fotoğraftan öğrenci aktarımı için OCR kullanılabilir. Bu tek dosyalı sürümde dosya bağımlılığını azaltmak için fotoğraf aktarımı yerine Excel/CSV/TXT aktarımı etkin bırakıldı.");
+}
+
+/* =========================================================
+   FİKSTÜR
+========================================================= */
+function fillClassSelects(){
+ const s=document.getElementById("matchClass");
+ if(!s)return;
+ s.innerHTML=state.classes.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("");
+ fillPlayers();
+}
+function fillPlayers(){
+ const cid=document.getElementById("matchClass").value;
+ const c=state.classes.find(x=>x.id===cid);
+ const p1=document.getElementById("p1"),p2=document.getElementById("p2");
+ if(!c){p1.innerHTML=p2.innerHTML="";return}
+ p1.innerHTML=c.students.map(x=>`<option>${esc(x)}</option>`).join("");
+ p2.innerHTML=c.students.map(x=>`<option>${esc(x)}</option>`).join("");
+ if(c.students.length>1)p2.selectedIndex=1;
+}
+function shuffle(a){
+ a=[...a];
+ for(let i=a.length-1;i>0;i--){
+  const j=Math.floor(Math.random()*(i+1));
+  [a[i],a[j]]=[a[j],a[i]];
+ }
+ return a;
+}
+function generateFixture(){
+ const cid=document.getElementById("matchClass").value;
+ if(cid)makeFixtureFor(cid);
+}
+function makeFixtureFor(cid){
+ const c=state.classes.find(x=>x.id===cid);
+ if(!c||c.students.length<2){
+  alert("Fikstür için en az 2 öğrenci gerekli.");return;
+ }
+ const existing=state.fixtures.filter(f=>f.classId===cid);
+ const pairs=[];
+ for(let i=0;i<c.students.length;i++){
+  for(let j=i+1;j<c.students.length;j++){
+   const a=c.students[i],b=c.students[j];
+   if(!existing.some(f=>(f.p1===a&&f.p2===b)||(f.p1===b&&f.p2===a)))
+    pairs.push({id:uid(),classId:cid,p1:a,p2:b,status:"Bekliyor",result:null});
+  }
+ }
+ state.fixtures.push(...pairs);
+ save();renderLeague();
+ alert(pairs.length+" yeni karşılaşma fikstüre eklendi.");
+}
+function randomMatch(){
+ const cid=document.getElementById("matchClass").value;
+ const c=state.classes.find(x=>x.id===cid);
+ if(!c||c.students.length<2){alert("Önce sınıfa en az 2 öğrenci ekle.");return}
+ const x=shuffle(c.students);
+ document.getElementById("p1").value=x[0];
+ document.getElementById("p2").value=x[1];
+ startMatch();
+}
+function quickLeague(){
+ go("league");
+ fillClassSelects();
+ if(state.classes.length && state.classes[0].students.length>=2){
+  randomMatch();
+ }else{
+  alert("Önce Sınıflarım bölümünden bir sınıf ve en az iki öğrenci oluştur.");
+ }
+}
+function renderLeague(){
+ fillClassSelects();
+ const fx=document.getElementById("fixture");
+ if(!state.fixtures.length){
+  fx.innerHTML='<div class="empty">Henüz fikstür oluşturulmadı.</div>';
+ }else{
+  fx.innerHTML=`<table><thead><tr><th>Sınıf</th><th>Karşılaşma</th><th>Durum</th><th>Sonuç</th></tr></thead><tbody>${
+   state.fixtures.map(f=>{
+    const c=state.classes.find(x=>x.id===f.classId);
+    return `<tr><td>${esc(c?.name||"-")}</td><td>${esc(f.p1)} — ${esc(f.p2)}</td><td>${f.status}</td><td>${f.result?esc(f.result):"—"}</td></tr>`
+   }).join("")
+  }</tbody></table>`;
+ }
+ renderRankings();
+}
+function renderRankings(){
+ const all=[];
+ state.classes.forEach(c=>{
+  c.students.forEach(name=>{
+   const r=c.ranking?.[name]||{played:0,wins:0,draws:0,losses:0,correct:0,points:0};
+   all.push({class:c.name,name,...r});
+  });
+ });
+ all.sort((a,b)=>b.points-a.points||b.correct-a.correct);
+ const el=document.getElementById("ranking");
+ if(!all.length){el.innerHTML='<div class="empty">Henüz öğrenci yok.</div>';return}
+ el.innerHTML=`<table><thead><tr><th>#</th><th>Öğrenci</th><th>Sınıf</th><th>O</th><th>G</th><th>M</th><th>Doğru</th><th>Puan</th></tr></thead><tbody>${
+ all.map((x,i)=>`<tr><td>${i+1}</td><td><b>${esc(x.name)}</b></td><td>${esc(x.class)}</td><td>${x.played}</td><td>${x.wins}</td><td>${x.losses}</td><td>${x.correct}</td><td><b>${x.points}</b></td></tr>`).join("")
+ }</tbody></table>`;
+}
+
+/* =========================================================
+   PRO LİG MAÇI
+========================================================= */
+const matchQuestions=[
+// Özgün, beceri temelli soru havuzu. MEB kaynakları kazanım/format referansı olarak gösterilir; sorular birebir MEB sorusu değildir.
+// 5. SINIF — her düelloda 3 kolay, 3 orta, 4 zor
+{grade:5,difficulty:"kolay",subject:"Ondalık Gösterim • Günlük yaşam",q:"Okul kantininde bir tost 24,50 TL, ayran 8,50 TL. İkisini alan öğrenci kaç TL öder?",a:"33"},
+{grade:5,difficulty:"kolay",subject:"Doğal Sayılar • Zaman",q:"Bir okul gezisi için 6 otobüsün her birine 38 öğrenci biniyor. Toplam kaç öğrenci taşınır?",a:"228"},
+{grade:5,difficulty:"kolay",subject:"Geometri • Çevre",q:"Kare biçimindeki bir bahçenin bir kenarı 9 metredir. Bahçenin çevresine bir tur tel çekmek için kaç metre tel gerekir?",a:"36"},
+{grade:5,difficulty:"orta",subject:"Kesirler • Tarif",q:"Bir tarifte 3 kişiye 3/4 litre süt kullanılıyor. Aynı tarif 6 kişi için hazırlanırsa kaç litre süt gerekir?",a:"1,5"},
+{grade:5,difficulty:"orta",subject:"Veri yorumlama • Alışveriş",q:"Bir kırtasiyede defter 18 TL, kalem 7 TL'dir. 2 defter ve 3 kalem alan biri 100 TL verirse kaç TL para üstü alır?",a:"43"},
+{grade:5,difficulty:"orta",subject:"Alan • Planlama",q:"Dikdörtgen bir oyun alanı 12 m uzunluğunda, 7 m genişliğindedir. Alanın 20 m²'sine kauçuk döşenirse açıkta kaç m² kalır?",a:"64"},
+{grade:5,difficulty:"zor",subject:"Çok adımlı problem • Ulaşım",q:"Bir gezi otobüsü 240 km yolun önce 3/8'ini, sonra 60 km'sini gidiyor. Gidilecek kaç kilometre kalır?",a:"90"},
+{grade:5,difficulty:"zor",subject:"Örüntü • Tasarım",q:"Bir duvar süslemesinde 1. sıraya 4, 2. sıraya 7, 3. sıraya 10 üçgen konuyor. Kural aynıysa 8. sırada kaç üçgen olur?",a:"25"},
+{grade:5,difficulty:"zor",subject:"Kesir ve karşılaştırma • Gıda israfı",q:"Bir pastanın sabah 2/5'i, öğleden sonra kalanının 1/3'ü yeniyor. Pastanın tamamının hangi kesri kalır? Cevabı sade kesir olarak yaz.",a:"2/5"},
+{grade:5,difficulty:"zor",subject:"Geometri • Görsel model",q:"<svg viewBox='0 0 300 100' role='img' aria-label='Dikdörtgen bahçe şeması' style='width:100%;max-width:300px;display:block;margin:10px auto'><rect x='55' y='18' width='190' height='58' rx='3' fill='none' stroke='#28d8d0' stroke-width='3'/><text x='150' y='13' fill='currentColor' text-anchor='middle' font-size='12'>14 m</text><text x='252' y='51' fill='currentColor' font-size='12'>6 m</text></svg> Yukarıdaki dikdörtgen bahçenin çevresine köşeler de dâhil olmak üzere her 2 metrede bir fidan dikilecek. Çevre boyunca kaç fidan gerekir? (Başlangıç noktası tekrar sayılmayacak.)",a:"20"},
+// 6. SINIF
+{grade:6,difficulty:"kolay",subject:"Oran • Tarif",q:"Bir içecek için 2 ölçü şuruba 5 ölçü su ekleniyor. 10 ölçü su kullanılırsa kaç ölçü şurup gerekir?",a:"4"},
+{grade:6,difficulty:"kolay",subject:"Tam sayılar • Sıcaklık",q:"Sabah hava −3 °C, öğlen 8 °C ölçülüyor. Sıcaklık kaç derece artmıştır?",a:"11"},
+{grade:6,difficulty:"kolay",subject:"Alan • Ev yaşamı",q:"4 m uzunluğunda ve 3 m genişliğindeki bir odanın taban alanı kaç metrekaredir?",a:"12"},
+{grade:6,difficulty:"orta",subject:"Ondalık gösterim • Yakıt",q:"Bir araç 100 km'de 6,4 litre yakıt tüketiyor. 250 km'lik yolda aynı tüketimle kaç litre yakıt harcar?",a:"16"},
+{grade:6,difficulty:"orta",subject:"Veri yorumlama • Okuma",q:"Dört öğrencinin bir haftada okuduğu sayfa sayıları 24, 31, 29 ve 36'dır. Bu öğrencilerin günlük değil, haftalık ortalama sayfa sayısı kaçtır? Cevabı tam sayı olarak yaz.",a:"30"},
+{grade:6,difficulty:"orta",subject:"Cebir • Bütçe",q:"Bir müze giriş bileti yetişkinler için 45 TL, öğrenciler için 25 TL. 2 yetişkin ve 4 öğrenci toplam kaç TL öder?",a:"190"},
+{grade:6,difficulty:"zor",subject:"Oran ve çok adımlı problem",q:"Bir okulda kız öğrencilerin erkek öğrencilere oranı 4:5, toplam öğrenci sayısı 270'tir. Erkek öğrenci sayısı kaçtır?",a:"150"},
+{grade:6,difficulty:"zor",subject:"Kesirler • Su tasarrufu",q:"Bir depo doluyken suyun önce 1/4'ü, sonra kalan suyun 1/3'ü kullanılıyor. Depoda başlangıçtaki suyun hangi kesri kalır? Sade kesir yaz.",a:"1/2"},
+{grade:6,difficulty:"zor",subject:"Geometri • Ölçekli plan",q:"Bir parkın planda 8 cm görünen yolu gerçekte 200 m'dir. Aynı ölçekte 5,5 cm görünen başka bir yol gerçekte kaç metredir?",a:"137,5"},
+{grade:6,difficulty:"zor",subject:"Veri ve çıkarım • Görsel",q:"<svg viewBox='0 0 300 135' role='img' aria-label='Kitap okuma sütun grafiği' style='width:100%;max-width:300px;display:block;margin:10px auto'><path d='M28 12V108H282' stroke='currentColor' fill='none'/><rect x='55' y='48' width='35' height='60' fill='#805cff'/><rect x='115' y='28' width='35' height='80' fill='#28d8d0'/><rect x='175' y='68' width='35' height='40' fill='#ffd35a'/><text x='72' y='123' fill='currentColor' text-anchor='middle' font-size='11'>Pzt</text><text x='132' y='123' fill='currentColor' text-anchor='middle' font-size='11'>Sal</text><text x='192' y='123' fill='currentColor' text-anchor='middle' font-size='11'>Çar</text><text x='72' y='42' fill='currentColor' text-anchor='middle' font-size='11'>15</text><text x='132' y='22' fill='currentColor' text-anchor='middle' font-size='11'>20</text><text x='192' y='62' fill='currentColor' text-anchor='middle' font-size='11'>10</text></svg> Grafikte bir öğrencinin üç günde okuduğu sayfalar gösteriliyor. Perşembe günü, bu üç günün ortalaması kadar sayfa okursa dört günde toplam kaç sayfa okumuş olur?",a:"60"},
+// 7. SINIF
+{grade:7,difficulty:"kolay",subject:"Yüzdeler • İndirim",q:"Etiketi 400 TL olan bir çantaya %15 indirim uygulanıyor. İndirimli fiyat kaç TL'dir?",a:"340"},
+{grade:7,difficulty:"kolay",subject:"Rasyonel sayılar • Günlük yaşam",q:"Bir yürüyüşçü sabah 1,2 km, akşam 0,85 km yürüyor. Toplam kaç kilometre yürür?",a:"2,05"},
+{grade:7,difficulty:"kolay",subject:"Doğrular ve açılar",q:"Bir kavşakta komşu bütünler açılardan biri 68° ise diğeri kaç derecedir?",a:"112"},
+{grade:7,difficulty:"orta",subject:"Orantı • Üretim",q:"4 makine 3 saatte 240 parça üretiyor. Aynı hızla çalışan 6 makine 3 saatte kaç parça üretir?",a:"360"},
+{grade:7,difficulty:"orta",subject:"Cebir • Telefon paketi",q:"Bir telefon paketinde 80 TL sabit ücret ve kullanılan her GB için 12 TL ücret var. Fatura 164 TL ise kaç GB kullanılmıştır?",a:"7"},
+{grade:7,difficulty:"orta",subject:"Çember • Tasarım",q:"Yarıçapı 7 cm olan bir çemberin çevresini π=22/7 alarak hesaplayınız. Sonuç kaç cm'dir?",a:"44"},
+{grade:7,difficulty:"zor",subject:"Yüzde değişimi • Alışveriş",q:"Bir ürünün fiyatı önce %20 artırılıp sonra yeni fiyat üzerinden %20 indirilirse başlangıç fiyatı 500 TL olan ürün kaç TL olur?",a:"480"},
+{grade:7,difficulty:"zor",subject:"Cebirsel düşünme • Taksi",q:"Bir taksi açılışta 25 TL, her kilometre için 14 TL alıyor. 165 TL ödeyen yolcu kaç kilometre gitmiştir?",a:"10"},
+{grade:7,difficulty:"zor",subject:"Alan • Planlama",q:"Dikdörtgen bir arsanın uzun kenarı kısa kenarının 2 katından 3 m fazladır. Kısa kenar 9 m ise arsanın alanı kaç m²'dir?",a:"189"},
+{grade:7,difficulty:"zor",subject:"Olasılık • Oyun",q:"Bir kutuda 4 kırmızı, 3 mavi ve 5 sarı kart vardır. Rastgele seçilen kartın sarı olmama olasılığı nedir? Sade kesir yaz.",a:"7/12"},
+// 8. SINIF
+{grade:8,difficulty:"kolay",subject:"Üslü ifadeler • Dijital veri",q:"Bir dosya 2⁵ MB büyüklüğündedir. Bu dosya kaç MB'tır?",a:"32"},
+{grade:8,difficulty:"kolay",subject:"Kareköklü ifadeler • Alan",q:"Alanı 196 m² olan kare biçimindeki bir meydanın bir kenarı kaç metredir?",a:"14"},
+{grade:8,difficulty:"kolay",subject:"Doğrusal denklem • Bütçe",q:"Aynı fiyatlı 3 bilet ve 20 TL hizmet bedeli toplam 170 TL tutuyor. Bir bilet kaç TL'dir?",a:"50"},
+{grade:8,difficulty:"orta",subject:"Eğim • Rampa",q:"Bir rampada yatay ilerleme 12 m, yükseklik artışı 3 m'dir. Eğim, yükseklik artışının yatay ilerlemeye oranı olduğuna göre eğim kaçtır? Sade kesir yaz.",a:"1/4"},
+{grade:8,difficulty:"orta",subject:"Olasılık • Üretim",q:"Bir fabrikadaki ürünlerin %4'ü kusurludur. Rastgele seçilen 250 üründe beklenen kusurlu ürün sayısı kaçtır?",a:"10"},
+{grade:8,difficulty:"orta",subject:"Eşitsizlik • Yaş sınırı",q:"Bir etkinliğe katılmak için yaşın en az 12, 18'den küçük olması gerekiyor. Tam sayı yaş seçeneklerinden kaç farklı yaş uygundur?",a:"6"},
+{grade:8,difficulty:"zor",subject:"Doğrusal ilişki • Su deposu",q:"Bir depoda başlangıçta 180 litre su vardır. Her dakika sabit 6 litre su boşalıyor. Depoda 42 litre su kalması kaç dakika sürer?",a:"23"},
+{grade:8,difficulty:"zor",subject:"Pisagor • Erişilebilirlik",q:"Bir bina girişine yapılan rampanın yatay uzunluğu 15 m, yüksekliği 8 m'dir. Rampanın eğimli uzunluğu kaç metredir?",a:"17"},
+{grade:8,difficulty:"zor",subject:"Çok adımlı yüzde problemi",q:"Bir ürün %20 indirimle 720 TL'ye satılıyor. İndirimden önceki etiket fiyatı kaç TL'dir?",a:"900"},
+{grade:8,difficulty:"zor",subject:"Veri yorumlama • Görsel",q:"<svg viewBox='0 0 300 130' role='img' aria-label='İki mağazanın haftalık satış grafiği' style='width:100%;max-width:300px;display:block;margin:10px auto'><path d='M28 10V105H280' stroke='currentColor' fill='none'/><rect x='55' y='45' width='30' height='60' fill='#805cff'/><rect x='88' y='25' width='30' height='80' fill='#28d8d0'/><rect x='165' y='35' width='30' height='70' fill='#805cff'/><rect x='198' y='15' width='30' height='90' fill='#28d8d0'/><text x='86' y='120' fill='currentColor' text-anchor='middle' font-size='11'>1. hafta</text><text x='196' y='120' fill='currentColor' text-anchor='middle' font-size='11'>2. hafta</text><text x='71' y='39' fill='currentColor' text-anchor='middle' font-size='10'>30</text><text x='103' y='19' fill='currentColor' text-anchor='middle' font-size='10'>40</text><text x='181' y='29' fill='currentColor' text-anchor='middle' font-size='10'>35</text><text x='213' y='9' fill='currentColor' text-anchor='middle' font-size='10'>45</text></svg> Grafikte iki mağazanın haftalık satış adetleri verilmiştir. 1. mağaza mor, 2. mağaza turkuaz sütunla gösteriliyor. İki haftada 2. mağaza, 1. mağazadan toplam kaç adet fazla satış yapmıştır?",a:"20"}
+];
+
+
+// Her sınıfın havuzu 150 soruya tamamlanır: ilk 10 soru yukarıdaki editörlü havuzdan,
+// sonraki 140 soru değişkenli, özgün ve beceri temelli görevlerden oluşur.
+// MEB/PISA/İl MEM kaynakları referans ve dış bağlantıdır; üretilen sorular birebir resmî soru diye sunulmaz.
+function buildSupplementaryQuestions(){
+ const out=[];
+ const simpleFraction=(num,den)=>{const gcd=(a,b)=>b?gcd(b,a%b):Math.abs(a);const g=gcd(Math.round(num),Math.round(den))||1;return `${Math.round(num/g)}/${Math.round(den/g)}`;};
+ const patterns={
+  5:[
+   (n)=>{let a=12+n,b=8+(n%6);return [`Okul kermesinde ${a} TL'lik sandviç ve ${b} TL'lik içecek alan öğrenci toplam kaç TL öder?`,String(a+b),'kolay','Ondalık ve doğal sayılar • Alışveriş'];},
+   (n)=>{let a=24+n,b=3+(n%5);return [`Bir geziye ${a} öğrenci katılıyor. Her minibüs ${b} öğrenci alırsa en az kaç minibüs gerekir?`,String(Math.ceil(a/b)),'kolay','Doğal sayılar • Ulaşım planı'];},
+   (n)=>{let a=5+(n%8);return [`Kare biçimindeki oyun alanının bir kenarı ${a} metredir. Çevresi kaç metredir?`,String(4*a),'kolay','Geometri • Çevre'];},
+   (n)=>{let a=2+(n%5),b=3+(n%4);return [`Bir tarifte ${a} kişiye ${b} bardak un kullanılıyor. Aynı ölçüyle ${a*2} kişilik tarif için kaç bardak un gerekir?`,String(b*2),'orta','Kesir ve oran • Tarif'];},
+   (n)=>{let a=15+n,b=6+(n%5),c=2+(n%4);return [`Bir öğrenci ${a} TL'lik defterden 2 tane ve tanesi ${b} TL olan kalemlerden ${c} tane alıyor. 100 TL verirse kaç TL para üstü alır?`,String(100-(2*a+c*b)),'orta','Çok adımlı işlem • Bütçe'];},
+   (n)=>{let a=8+(n%9),b=4+(n%6),c=10+(n%12);return [`Dikdörtgen bir bahçenin kenarları ${a} m ve ${b} m'dir. Bahçenin ${c} m²'si çiçeklendirilirse çim için kaç m² kalır?`,String(a*b-c),'orta','Alan • Planlama'];},
+   (n)=>{let a=120+10*n,b=1+(n%4);return [`Bir yürüyüş rotasının ${a} metresinin önce 1/${b+1}'i tamamlanıyor. Kaç metre yol kalır?`,String(a-a/(b+1)),'zor','Kesir • Rota planlama'];},
+   (n)=>{let a=2+n%5,b=3+n%4,k=5+n%6;return [`Bir sayı örüntüsü ${a}, ${a+b}, ${a+2*b}, ... biçiminde ilerliyor. Aynı kurala göre ${k}. terim kaçtır?`,String(a+(k-1)*b),'zor','Örüntü • Kural bulma'];},
+   (n)=>{let a=2+(n%3),b=5+(n%4);return [`Bir su şişesinin önce ${a}/${b+2}'si, sonra kalanının yarısı içiliyor. Başlangıçtaki suyun ne kadarı kalır? Sade kesir yaz.`,simpleFraction(b+2-a,2*(b+2)),'zor','Kesirler • Su tasarrufu'];},
+   (n)=>{let a=6+n%7,b=3+n%5;return [`Bir dikdörtgenin uzunluğu ${a} m, genişliği ${b} m'dir. Çevresi boyunca her 1 metrede bir işaret konursa köşe başlangıcı tekrar sayılmadan kaç işaret gerekir?`,String(2*(a+b)),'zor','Geometri • Modelleme'];}
+  ],
+  6:[
+   (n)=>{let a=2+n%5;return [`Bir içecek için 3 ölçü meyve özüne ${a} ölçü su ekleniyor. 12 ölçü meyve özü kullanılırsa kaç ölçü su gerekir?`,String(4*a),'kolay','Oran • Tarif'];},
+   (n)=>{let a=-8+n%5,b=7+n%6;return [`Sabah sıcaklık ${a} °C, öğlen ${b} °C ölçülüyor. Sıcaklık kaç derece artmıştır?`,String(b-a),'kolay','Tam sayılar • Hava durumu'];},
+   (n)=>{let a=3+n%6,b=2+n%5;return [`Uzunluğu ${a} m, genişliği ${b} m olan dikdörtgen odanın alanı kaç m²'dir?`,String(a*b),'kolay','Alan • Ev yaşamı'];},
+   (n)=>{let a=4+n%5,d=2+n%4;return [`Bir araç 100 km'de ${a} litre yakıt tüketiyor. ${100+d*50} km'de aynı tüketimle kaç litre yakıt harcar?`,String(a*(100+d*50)/100),'orta','Oran • Yakıt tüketimi'];},
+   (n)=>{let a=18+n,b=24+n%7,c=30+n%9;return [`Üç öğrencinin haftalık okuduğu sayfa sayıları ${a}, ${b} ve ${c}'dir. Üç öğrencinin ortalaması kaç sayfadır?`,String((a+b+c)/3),'orta','Veri analizi • Okuma'];},
+   (n)=>{let a=30+n%20,b=15+n%10;return [`Bir etkinliğin biletleri yetişkinler için ${a} TL, öğrenciler için ${b} TL'dir. 3 yetişkin ve 4 öğrenci toplam kaç TL öder?`,String(3*a+4*b),'orta','Cebirsel düşünme • Bütçe'];},
+   (n)=>{let parts=4+n%5,total=(parts+5)*(30+n%10);return [`Bir sınıfta kızların erkeklere oranı ${parts}:5 ve toplam öğrenci sayısı ${total} ise erkek öğrenci sayısı kaçtır?`,String(total*5/(parts+5)),'zor','Oran • Sınıf verileri'];},
+   (n)=>{let a=2+n%4,b=4+n%5;return [`Bir depodaki suyun önce 1/${a+2}'si, sonra kalan suyun 1/${b}'i kullanılıyor. Başlangıçtaki suyun hangi kesri kalır? Sade kesir yaz.`,simpleFraction((a+1)*(b-1),(a+2)*b),'zor','Kesirler • Kaynak yönetimi'];},
+   (n)=>{let a=4+n%6;return [`Bir haritada ${a} cm uzunluğundaki yol gerçekte ${a*25} m'dir. Aynı ölçekte 7,2 cm'lik yol gerçekte kaç metredir?`,'180','zor','Ölçek • Harita okuryazarlığı'];},
+   (n)=>{let a=10+n%8,b=14+n%9,c=8+n%7;return [`Üç günde sırasıyla ${a}, ${b} ve ${c} sayfa okuyan öğrenci, dördüncü gün ilk üç günün ortalaması kadar okuyor. Dört günde toplam kaç sayfa okur?`,String(a+b+c+(a+b+c)/3),'zor','Veri yorumlama • Okuma'];}
+  ],
+  7:[
+   (n)=>{let a=200+20*n,p=10+5*(n%4);return [`Etiketi ${a} TL olan bir ürüne %${p} indirim uygulanıyor. İndirimli fiyat kaç TL'dir?`,String(a*(100-p)/100),'kolay','Yüzdeler • Alışveriş'];},
+   (n)=>{let a=0.4+n/10,b=0.25+(n%5)/100;return [`Bir öğrenci sabah ${a.toFixed(2)} km, akşam ${b.toFixed(2)} km yürüyor. Toplam kaç km yürümüştür?`,(a+b).toFixed(2).replace('.',','),'kolay','Rasyonel sayılar • Sağlık'];},
+   (n)=>{let a=45+n%40;return [`Bir kavşakta komşu bütünler açılardan biri ${a}° ise diğer açı kaç derecedir?`,String(180-a),'kolay','Açılar • Trafik güvenliği'];},
+   (n)=>{let a=3+n%5,b=2+n%4,c=120+n*10;return [`${a} makine ${b} saatte ${c} parça üretiyor. Aynı hızla ${a*2} makine aynı sürede kaç parça üretir?`,String(c*2),'orta','Orantı • Üretim'];},
+   (n)=>{let a=50+n*2,b=8+n%7,c=130+n*3;return [`Bir telefon paketinde ${a} TL sabit ücret ve GB başına ${b} TL ücret var. Fatura ${c} TL ise kaç GB kullanılmıştır?`,String((c-a)/b),'orta','Cebir • Dijital yaşam'];},
+   (n)=>{let r=3+n%9;return [`Yarıçapı ${r} cm olan çemberin çevresini π=3 alarak yaklaşık hesaplayınız. Çevre kaç cm olur?`,String(6*r),'orta','Çember • Tasarım'];},
+   (n)=>{let a=300+50*n;return [`Bir ürünün fiyatı önce %10 artırılıyor, sonra yeni fiyat üzerinden %10 azaltılıyor. Başlangıç fiyatı ${a} TL ise son fiyat kaç TL olur?`,String(a*1.1*0.9),'zor','Yüzde değişimi • Finansal okuryazarlık'];},
+   (n)=>{let a=15+n%20,b=8+n%9,total=a+b*10;return [`Bir taksi ${a} TL açılış ücreti ve kilometre başına ${b} TL alıyor. Yolculuk ${total} TL tuttuğuna göre kaç km gidilmiştir?`,String((total-a)/b),'zor','Denklem • Ulaşım'];},
+   (n)=>{let x=5+n%8;return [`Dikdörtgen arsanın uzun kenarı kısa kenarının 2 katından 1 m fazladır. Kısa kenar ${x} m ise alan kaç m²'dir?`,String(x*(2*x+1)),'zor','Cebir ve alan • Arazi planı'];},
+   (n)=>{let a=3+n%5,b=4+n%6,c=5+n%4;return [`Bir torbada ${a} kırmızı, ${b} mavi ve ${c} sarı kart var. Rastgele seçilen kartın sarı olmama olasılığı nedir? Sade kesir yaz.`,simpleFraction(a+b,a+b+c),'zor','Olasılık • Oyun tasarımı'];}
+  ],
+  8:[
+   (n)=>{let a=3+n%5;return [`Bir dosyanın boyutu 2 üzeri ${a} MB'tır. Dosyanın boyutu kaç MB'tır?`,String(2**a),'kolay','Üslü ifadeler • Dijital veri'];},
+   (n)=>{let a=81+9*(n%8);return [`Alanı ${a*a} m² olan kare meydanın bir kenarı kaç metredir?`,String(a),'kolay','Kareköklü ifadeler • Alan'];},
+   (n)=>{let a=25+n*3;return [`Aynı fiyatlı 4 bilet ve 20 TL hizmet bedeli toplam ${4*a+20} TL tutuyor. Bir bilet kaç TL'dir?`,String(a),'kolay','Denklem • Bütçe'];},
+   (n)=>{let a=6+n%10,b=2+n%5;return [`Bir rampada yatay ilerleme ${a*2} m, yükseklik artışı ${b} m'dir. Eğim, yükseklik/yatay uzaklık olduğuna göre kaçtır? Sade kesir yaz.`,simpleFraction(b,a*2),'orta','Eğim • Erişilebilir tasarım'];},
+   (n)=>{let p=2+(n%7);return [`Bir üretim bandındaki ürünlerin %${p}’si kusurludur. Rastgele seçilen ${100*(n%3+2)} üründe beklenen kusurlu ürün sayısı kaçtır?`,String(p*(100*(n%3+2))/100),'orta','Yüzde • Kalite kontrol'];},
+   (n)=>{let a=11+n%5,b=18+n%5;return [`Bir etkinlik için yaş en az ${a}, ${b}'den küçük olmalıdır. Tam sayı yaşları dikkate alındığında kaç farklı yaş uygundur?`,String(b-a),'orta','Eşitsizlik • Etkinlik kuralları'];},
+   (n)=>{let a=150+n*5,b=5+n%7,c=30+n%20;return [`Bir depoda başlangıçta ${a} litre su vardır. Her dakika ${b} litre su boşalıyor. Depoda ${c} litre kalması kaç dakika sürer?`,String((a-c)/b),'zor','Doğrusal ilişki • Su yönetimi'];},
+   (n)=>{let a=6+n%10,b=8+n%9;return [`Bir dik üçgende dik kenarlar ${a} m ve ${b} m'dir. Hipotenüs uzunluğu kaç metredir?`,String(Math.sqrt(a*a+b*b)),'zor','Pisagor • İnşaat'];},
+   (n)=>{let price=600+20*n,p=20;return [`Bir ürün %${p} indirimle ${price*0.8} TL'ye satılıyor. İndirimden önceki fiyatı kaç TL'dir?`,String(price),'zor','Yüzde • Tüketici matematiği'];},
+   (n)=>{let a=20+n%20,b=30+n%15,c=25+n%18,d=35+n%20;return [`İki mağazanın iki haftalık satışları sırasıyla A: ${a} ve ${b}, B: ${c} ve ${d} adettir. İki haftada hangi mağaza kaç adet fazla satış yapmıştır?`,String(Math.abs((c+d)-(a+b))),'zor','Veri yorumlama • Karşılaştırma'];}
+  ]
+ };
+ const diffCycle=['kolay','kolay','kolay','orta','orta','orta','zor','zor','zor','zor'];
+ for(const grade of [5,6,7,8]){
+  const templates=patterns[grade];
+  for(let i=0;i<140;i++){
+   const t=Math.floor(i/14), n=(i%14)+1;
+   const result=templates[t](n);
+   out.push({grade,difficulty:result[2]||diffCycle[i%10],subject:result[3],q:result[0],a:String(result[1]),source:'Özgün soru — MEB/PISA beceri yaklaşımından esinlenilmiştir'});
+  }
+ }
+ return out;
+}
+matchQuestions.push(...buildSupplementaryQuestions());
+
+function toggleMatchMode(){
+ const mode=document.getElementById("matchMode")?.value||"duel";
+ const solo=mode==="solo",team=mode==="team";
+ const p1w=document.getElementById("p1Wrap"),p2w=document.getElementById("p2Wrap"),setup=document.getElementById("teamSetup");
+ if(p1w)p1w.style.display=(solo||team)?"none":"block";
+ if(p2w)p2w.style.display=(solo||team)?"none":"block";
+ if(setup){setup.style.display=team?"block":"none";if(team)renderTeamSetup();}
+ const randomBtn=document.getElementById("randomMatchBtn"),fixtureBtn=document.getElementById("fixtureBtn");
+ if(randomBtn)randomBtn.style.display=team?"none":"inline-flex";
+ if(fixtureBtn)fixtureBtn.style.display=team?"none":"inline-flex";
+}
+function renderTeamSetup(){
+ const box=document.getElementById("teamSetup");if(!box)return;
+ const cid=document.getElementById("matchClass")?.value,c=state.classes.find(x=>x.id===cid);
+ if(!c){box.innerHTML='<div class="empty">Önce sınıf oluşturup öğrenci ekle.</div>';return;}
+ const memberList=(teamNo)=>c.students.map((name,i)=>`<label class="teamMember"><input type="checkbox" name="team${teamNo}Members" value="${esc(name)}" ${teamNo===1&&i===0?'checked':''} ${teamNo===2&&i===1?'checked':''}><span>${esc(name)}</span></label>`).join("");
+ box.innerHTML=`<h3 style="margin-top:0">👥 Takımları Oluştur</h3><p class="muted" style="margin-top:-4px">Takım adlarını yaz, her takımın üyelerini işaretle. Bir öğrenci iki takımda birden bulunamaz.</p><div class="teamSetupGrid"><div class="teamPick"><h4>🔵 1. Takım</h4><div class="field"><label>Takım adı</label><input id="team1Name" maxlength="32" value="${c.name?esc(c.name+' Mavi Takım'):'Mavi Takım'}" placeholder="Örn. Zekâ Kartalları"></div><div class="teamMembers">${memberList(1)}</div></div><div class="teamPick"><h4>🟡 2. Takım</h4><div class="field"><label>Takım adı</label><input id="team2Name" maxlength="32" value="${c.name?esc(c.name+' Altın Takım'):'Altın Takım'}" placeholder="Örn. Akıl Yıldızları"></div><div class="teamMembers">${memberList(2)}</div></div></div><p class="muted" style="font-size:12px;margin-bottom:0">Takım üyelerinin adları yarışma boyunca ve sonuç ekranında gösterilir. Her soru için takım adına ortak cevap girilir.</p>`;
+}
+function fillPlayers(){
+ const cid=document.getElementById("matchClass")?.value;
+ const c=state.classes.find(x=>x.id===cid);
+ const p1=document.getElementById("p1"),p2=document.getElementById("p2");
+ if(!c){if(p1)p1.innerHTML="";if(p2)p2.innerHTML="";return}
+ p1.innerHTML=c.students.map(x=>`<option>${esc(x)}</option>`).join("");
+ p2.innerHTML=c.students.map(x=>`<option>${esc(x)}</option>`).join("");
+ if(c.students.length>1)p2.selectedIndex=1;
+ if(document.getElementById("matchMode")?.value==="team")renderTeamSetup();
+}
+function getSelectedTeamMembers(teamNo){return [...document.querySelectorAll(`input[name="team${teamNo}Members"]:checked`)].map(x=>x.value)}
+function pickMatchQuestions(classId){
+ const c=state.classes.find(x=>x.id===classId);
+ const matchGrade=String(c?.name||"").match(/(?:^|\D)([5-8])(?:\D|$)/)?.[1];
+ let pool=matchGrade?matchQuestions.filter(q=>String(q.grade)===matchGrade):matchQuestions;
+ if(pool.length<10)pool=matchQuestions;
+ const groups={kolay:[],orta:[],zor:[]};
+ pool.forEach(q=>groups[getQuestionDifficulty(q)].push(q));
+ // Dağılım sabittir: her maç 3 kolay + 3 orta + 4 zor.
+ return shuffle([...shuffle(groups.kolay).slice(0,3),...shuffle(groups.orta).slice(0,3),...shuffle(groups.zor).slice(0,4)]);
+}
+function getQuestionDifficulty(q){
+ if(q.difficulty)return q.difficulty;
+ const g=String(q.grade);
+ const sub=String(q.subject||"");
+ const txt=String(q.q||"");
+ if(sub.includes("Üslü")||sub.includes("Kareköklü")||sub.includes("Olasılık")||sub.includes("Eşitsizlik"))return "zor";
+ if(sub.includes("Zekâ")||sub.includes("Mantık")){
+  if(/tavuk|tavşan|tokalaş|olasılık|rakamları|kıyafet|torba|merdiven/i.test(txt))return "zor";
+  return "orta";
+ }
+ if(g==="8"||g==="7")return "orta";
+ return "kolay";
+}
+function startMatch(fixtureId=null){
+ let f=fixtureId?state.fixtures.find(x=>x.id===fixtureId):null;
+ let cid,p1,p2,mode,team1=null,team2=null;
+ if(f){cid=f.classId;p1=f.p1;p2=f.p2;mode="duel";}
+ else{
+  mode=document.getElementById("matchMode")?.value||"duel";
+  cid=document.getElementById("matchClass").value;
+  p1=document.getElementById("p1")?.value;p2=document.getElementById("p2")?.value;
+ }
+ if(!cid){alert("Önce sınıf seçmelisin.");return}
+ if(mode==="team"){
+  team1={name:(document.getElementById("team1Name")?.value||"Mavi Takım").trim(),members:getSelectedTeamMembers(1)};
+  team2={name:(document.getElementById("team2Name")?.value||"Altın Takım").trim(),members:getSelectedTeamMembers(2)};
+  if(!team1.name||!team2.name||team1.name.toLocaleLowerCase('tr-TR')===team2.name.toLocaleLowerCase('tr-TR')){alert("İki takıma farklı ve geçerli isimler ver.");return}
+  if(!team1.members.length||!team2.members.length){alert("Her iki takıma da en az bir üye seçmelisin.");return}
+  const overlap=team1.members.filter(n=>team2.members.includes(n));
+  if(overlap.length){alert("Aynı öğrenci iki takımda olamaz: "+overlap.join(", "));return}
+  p1=team1.name;p2=team2.name;
+ }else{
+  if(!p1){alert("Önce sınıf ve öğrenci seçmelisin.");return}
+  if(mode==="duel"&&(!p2||p1===p2)){alert("İki kişilik düelloda iki farklı öğrenci seçmelisin.");return}
+ }
+ match={id:uid(),classId:cid,p1,p2:mode==="solo"?"":p2,mode,team1,team2,
+  index:0,questions:pickMatchQuestions(cid),answers1:[],answers2:[],correct1:0,correct2:0,start:Date.now()};
+ renderMatch();
+}
+function renderMatch(){
+ const area=document.getElementById("matchArea");
+ if(!match){area.innerHTML="";return}
+ const q=match.questions[match.index],diff=getQuestionDifficulty(q);
+ const diffText={kolay:"🟢 Kolay",orta:"🟡 Orta",zor:"🔴 Zor"}[diff];
+ if(match.mode==="solo"){
+  area.innerHTML=`<div class="panel"><div class="titleline"><h3>🧠 Tek Başına Yarış — Soru ${match.index+1}/10</h3><span class="tag">${diffText} • 100 Puan</span></div><div class="player"><div class="avatar">🧠</div><b>${esc(match.p1)}</b><small>Tek oyuncu</small></div><div class="question">${q.q}</div><div class="proof"><b>${esc(q.subject)}</b> • ${String(q.grade).includes("-")?"Ortaokul":q.grade+". sınıf"}</div><div class="scorecards"><div class="scorecard"><b>${match.correct1}</b><small>Doğru</small></div><div class="scorecard"><b>${match.correct1*100}</b><small>Puan</small></div></div><div class="field" style="margin-top:12px"><label>Cevabın</label><input id="ans1" autocomplete="off"></div><button class="btn" onclick="submitMatchAnswer()">✓ Cevabı Değerlendir</button></div>`;
+ }else if(match.mode==="team"){
+  const teamCard=(t,icon,correct)=>`<div class="teamBadge"><div style="font-size:25px">${icon}</div><b>${esc(t.name)}</b><small>👥 ${t.members.map(esc).join(" • ")}</small><small>Doğru: <strong>${correct}</strong> · ${correct*100} puan</small></div>`;
+  area.innerHTML=`<div class="panel"><div class="titleline"><h3>👥 Takım Yarışı — Soru ${match.index+1}/10</h3><span class="tag">${diffText} • 100 Puan</span></div><div class="teamSetupGrid">${teamCard(match.team1,"🔵",match.correct1)}<div class="vs">VS</div>${teamCard(match.team2,"🟡",match.correct2)}</div><div class="question">${q.q}</div><div class="proof"><b>${esc(q.subject)}</b> • ${String(q.grade).includes("-")?"Ortaokul":q.grade+". sınıf"}</div><div class="row" style="margin-top:12px"><div class="field"><label>${esc(match.team1.name)} — ortak cevap</label><input id="ans1" autocomplete="off"></div><div class="field"><label>${esc(match.team2.name)} — ortak cevap</label><input id="ans2" autocomplete="off"></div></div><p class="muted" style="font-size:12px">Üyeler birlikte düşünüp takım adına tek cevap girsin.</p><button class="btn" onclick="submitMatchAnswer()">✓ Takım Cevaplarını Değerlendir</button></div>`;
+ }else{
+  area.innerHTML=`<div class="panel"><div class="titleline"><h3>🏆 Zekâ Pro Ligi — Soru ${match.index+1}/10</h3><span class="tag">${diffText} • 100 Puan</span></div><div class="match"><div class="player"><div class="avatar">🧠</div><b>${esc(match.p1)}</b><small>Oyuncu 1</small></div><div class="vs">VS</div><div class="player"><div class="avatar">⚡</div><b>${esc(match.p2)}</b><small>Oyuncu 2</small></div></div><div class="question">${q.q}</div><div class="proof"><b>${esc(q.subject)}</b> • ${String(q.grade).includes("-")?"Ortaokul":q.grade+". sınıf"}</div><div class="scorecards"><div class="scorecard"><b>${match.correct1}</b><small>${esc(match.p1)} doğru</small></div><div class="scorecard"><b>${match.correct2}</b><small>${esc(match.p2)} doğru</small></div></div><div class="row" style="margin-top:12px"><div class="field"><label>${esc(match.p1)} cevabı</label><input id="ans1" autocomplete="off"></div><div class="field"><label>${esc(match.p2)} cevabı</label><input id="ans2" autocomplete="off"></div></div><button class="btn" onclick="submitMatchAnswer()">✓ İki Cevabı Değerlendir</button></div>`;
+ }
+}
+function normalize(x){return String(x??"").trim().toLocaleLowerCase("tr-TR").replace(/\s+/g,"");}
+function submitMatchAnswer(){
+ const a1=document.getElementById("ans1")?.value||"";
+ if(!a1){alert("Cevap gir.");return}
+ const a2=document.getElementById("ans2")?.value||"";
+ if(match.mode==="duel"&&!a2){alert("İki öğrencinin de cevabını gir.");return}
+ const q=match.questions[match.index];
+ const c1=normalize(a1)===normalize(q.a);
+ const c2=match.mode==="duel"&&normalize(a2)===normalize(q.a);
+ match.answers1.push(a1);if(match.mode==="duel")match.answers2.push(a2);
+ if(c1)match.correct1++;if(c2)match.correct2++;
+ match.index++;
+ if(match.index>=match.questions.length)finishMatch();else renderMatch();
+}
+function finishMatch(){
+ const c=state.classes.find(x=>x.id===match.classId); if(!c)return;
+ if(match.mode==="team"){
+  const t1=match.team1,t2=match.team2;
+  const winner=match.correct1>match.correct2?t1.name:match.correct2>match.correct1?t2.name:"Beraberlik";
+  const rec={id:match.id,date:new Date().toLocaleString("tr-TR"),classId:match.classId,className:c.name,p1:t1.name,p2:t2.name,team1:t1,team2:t2,mode:"team",correct1:match.correct1,correct2:match.correct2,winner,answers1:match.answers1,answers2:match.answers2};
+  state.matches.push(rec);state.history.unshift(rec);save();
+  showWinner(winner,t1.name,t2.name,match.correct1,match.correct2,{team:true,team1:t1,team2:t2});
+  match=null;renderLeague();renderReports();return;
+ }
+ if(match.mode==="solo"){
+  state.score=(state.score||0)+match.correct1*100;
+  state.solved=(state.solved||0)+match.correct1;
+  const rec={id:match.id,date:new Date().toLocaleString("tr-TR"),classId:match.classId,className:c.name,p1:match.p1,p2:"",mode:"solo",correct1:match.correct1,correct2:0,winner:match.p1,answers1:match.answers1,answers2:[]};
+  state.matches.push(rec);state.history.unshift(rec);save();
+  showWinner(match.p1,match.p1,"",match.correct1,0);match=null;renderLeague();renderReports();return;
+ }
+ if(!c.ranking)c.ranking={};
+ [match.p1,match.p2].forEach(n=>{if(!c.ranking[n])c.ranking[n]={played:0,wins:0,draws:0,losses:0,correct:0,points:0};});
+ const r1=c.ranking[match.p1],r2=c.ranking[match.p2];r1.played++;r2.played++;r1.correct+=match.correct1;r2.correct+=match.correct2;
+ let winner="Beraberlik";
+ if(match.correct1>match.correct2){winner=match.p1;r1.wins++;r2.losses++;r1.points+=match.correct1*100+50;r2.points+=match.correct2*100}
+ else if(match.correct2>match.correct1){winner=match.p2;r2.wins++;r1.losses++;r2.points+=match.correct2*100+50;r1.points+=match.correct1*100}
+ else{r1.draws++;r2.draws++;r1.points+=match.correct1*100;r2.points+=match.correct2*100}
+ const f=state.fixtures.find(x=>x.classId===match.classId&&((x.p1===match.p1&&x.p2===match.p2)||(x.p1===match.p2&&x.p2===match.p1)));
+ if(f){f.status="Tamamlandı";f.result=winner==="Beraberlik"?`Beraberlik ${match.correct1}-${match.correct2}`:`${winner} ${Math.max(match.correct1,match.correct2)}-${Math.min(match.correct1,match.correct2)}`}
+ const rec={id:match.id,date:new Date().toLocaleString("tr-TR"),classId:match.classId,className:c.name,p1:match.p1,p2:match.p2,correct1:match.correct1,correct2:match.correct2,winner,answers1:match.answers1,answers2:match.answers2};
+ state.matches.push(rec);state.history.unshift(rec);save();showWinner(winner,match.p1,match.p2,match.correct1,match.correct2);match=null;renderLeague();renderReports();
+}
+function showWinner(winner,p1,p2,c1,c2,extra=null){
+ const modal=document.getElementById("winnerModal");if(!modal)return;
+ modal.classList.toggle("teamWin",!!extra?.team);
+ document.getElementById("winnerName").textContent=winner==="Beraberlik"?"🤝 Beraberlik":(extra?.team?"🏆 ":"🏆 ")+winner;
+ const detail=document.getElementById("winnerDetail");
+ if(extra?.team){
+  const t1=extra.team1,t2=extra.team2;
+  detail.innerHTML=`<div class="teamSetupGrid"><div class="teamBadge"><b>${esc(t1.name)}</b><small>Üyeler: ${t1.members.map(esc).join(" • ")}</small><small>${c1} doğru · ${c1*100} puan</small></div><div class="teamBadge"><b>${esc(t2.name)}</b><small>Üyeler: ${t2.members.map(esc).join(" • ")}</small><small>${c2} doğru · ${c2*100} puan</small></div></div><p style="margin-top:14px">${winner==="Beraberlik"?"Harika mücadele! İki takım berabere kaldı.":`Tebrikler ${esc(winner)}! Takım zaferi! 🎉`}</p>`;
+  document.querySelector("#winnerModal .scorecards").style.display="none";
+ }else{
+  detail.textContent=p2?`${p1}: ${c1} doğru · ${p2}: ${c2} doğru`:`${c1} doğru cevap · ${c1*100} puan`;
+  document.querySelector("#winnerModal .scorecards").style.display="grid";
+ }
+ document.getElementById("winP1").textContent=c1;document.getElementById("winP2").textContent=c2;
+ const conf=document.getElementById("confetti");conf.innerHTML="";
+ if(winner!=="Beraberlik")for(let i=0;i<(extra?.team?90:55);i++){const bit=document.createElement("i");bit.style.left=Math.random()*100+"%";bit.style.animationDelay=(Math.random()*1.2)+"s";bit.style.background=["#ffd35a","#28d8d0","#805cff","#ff6687","#ffffff"][i%5];bit.style.transform=`rotate(${Math.random()*360}deg)`;conf.appendChild(bit);}
+ modal.classList.add("show");
+}
+function closeWinner(){
+ const modal=document.getElementById("winnerModal");if(!modal)return;
+ modal.classList.remove("show","teamWin");document.getElementById("confetti").innerHTML="";
+ document.querySelector("#winnerModal .scorecards").style.display="grid";
+}
+
+/* =========================================================
+   OYUNLAR
+========================================================= */
+function gameKey(type,q){
+ if(type==="sudoku")return JSON.stringify(q.puzzle);
+ if(type==="kendoku")return JSON.stringify(q.cages);
+ if(type==="apartman")return JSON.stringify(q.sol);
+ return String(q.answer||q.display);
+}
+function makeUniqueGame(type){
+ if(!state.games[type])state.games[type]=[];
+ const used=new Set(state.games[type]);
+ let q,key,tries=0;
+ do{
+  q=type==="sudoku"?makeSudoku():type==="kendoku"?makeKendoku():type==="apartman"?makeApartman():makeRebus();
+  key=gameKey(type,q);tries++;
+ }while(used.has(key)&&tries<100);
+ if(used.has(key)){
+  state.games[type]=[];
+ }
+ state.games[type].push(key);save();
+ return q;
+}
+function startGame(type){
+ currentGameType=type;
+ clearInterval(gameTimer);
+ gameSeconds=0;
+ document.getElementById("timer").textContent="00:00";
+ currentPuzzle=makeUniqueGame(type);
+
+ document.getElementById("gameTitle").textContent={
+  sudoku:"Sudoku",kendoku:"Kendoku",apartman:"Apartman",resfebe:"Resfebe"
+ }[type];
+ document.getElementById("gameMeta").textContent="Zekâ Oyunu";
+ document.getElementById("gameFeedback").className="feedback";
+ document.getElementById("gameFeedback").textContent="";
+ renderGame(currentPuzzle);
+ go("game");
+
+ gameTimer=setInterval(()=>{
+  gameSeconds++;
+  const m=String(Math.floor(gameSeconds/60)).padStart(2,"0");
+  const s=String(gameSeconds%60).padStart(2,"0");
+  document.getElementById("timer").textContent=m+":"+s;
+ },1000);
+}
+function renderGame(q){
+ if(currentGameType==="sudoku")renderSudoku(q);
+ if(currentGameType==="kendoku")renderKendoku(q);
+ if(currentGameType==="apartman")renderApartman(q);
+ if(currentGameType==="resfebe")renderRebus(q);
+}
+function feedback(ok,msg){
+ const e=document.getElementById("gameFeedback");
+ e.className="feedback "+(ok?"ok":"no");
+ e.textContent=msg;
+}
+function finishGame(ok,msg){
+ if(ok){
+  clearInterval(gameTimer);
+  state.solved++;
+  state.score+=100;
+  state.streak++;
+  state.history.unshift({
+   type:currentGameType,date:new Date().toLocaleString("tr-TR"),
+   result:"Başarılı",score:100,time:gameSeconds
+  });
+  save();
+  feedback(true,msg+" +100 puan");
+ }else{
+  state.streak=0;save();
+  feedback(false,msg+" Tekrar deneyebilirsin.");
+ }
+}
+function checkCurrentGame(){
+ if(currentGameType==="sudoku")checkSudoku();
+ if(currentGameType==="kendoku")checkKendoku();
+ if(currentGameType==="apartman")checkApartman();
+ if(currentGameType==="resfebe")checkRebus();
+}
+function hintGame(){
+ const hints={
+  sudoku:"Her satır, sütun ve 3×3 bölgede 1–9 birer kez bulunur.",
+  kendoku:"Her satır ve sütunda 1–6 sayıları birer kez bulunur. Sarı çerçeveler aynı bölgeyi gösterir.",
+  apartman:"Bir ipucu, o yönden bakıldığında görülen bina sayısını söyler.",
+  resfebe:"Sembollerin sesini, sırasını ve birlikte oluşturduğu kelimeyi düşün."
+ };
+ feedback(false,"💡 "+hints[currentGameType]);
+}
+
+/* ---------- Sudoku ---------- */
+function pattern(r,c){return (r*3+Math.floor(r/3)+c)%9}
+function shuffleNums(a){return shuffle(a)}
+function makeSolvedSudoku(){
+ const base=[...Array(9)].map((_,r)=>[...Array(9)].map((_,c)=>pattern(r,c)+1));
+ const nums=shuffleNums([1,2,3,4,5,6,7,8,9]);
+ const map=x=>nums[x-1];
+ return base.map(row=>row.map(map));
+}
+function makeSudoku(){
+ const sol=makeSolvedSudoku();
+ const puzzle=sol.map(r=>[...r]);
+ let cells=shuffle([...Array(81).keys()]);
+ let remove=48;
+ for(const k of cells){
+  if(remove<=0)break;
+  const r=Math.floor(k/9),c=k%9;
+  puzzle[r][c]=0;remove--;
+ }
+ return {sol,puzzle};
+}
+function renderSudoku(q){
+ let h='<div class="sudoku">';
+ for(let r=0;r<9;r++)for(let c=0;c<9;c++){
+  const v=q.puzzle[r][c];
+  h+=`<input id="s${r}_${c}" ${v?`value="${v}" readonly`:""} inputmode="numeric" maxlength="1">`;
+ }
+ h+="</div>";
+ document.getElementById("gameArea").innerHTML=h;
+}
+function checkSudoku(){
+ for(let r=0;r<9;r++)for(let c=0;c<9;c++){
+  const e=document.getElementById(`s${r}_${c}`);
+  if(!e.value){feedback(false,"Eksik hücreler var.");return}
+  if(Number(e.value)!==currentPuzzle.sol[r][c]){
+   finishGame(false,"Henüz doğru değil.");
+   return;
+  }
+ }
+ finishGame(true,"Mükemmel! Sudoku çözüldü.");
+}
+
+/* ---------- Kendoku ---------- */
+function latin6(){
+ const arr=[];
+ for(let r=0;r<6;r++)arr[r]=[];
+ for(let r=0;r<6;r++)for(let c=0;c<6;c++)arr[r][c]=(r+c)%6+1;
+ const nums=shuffle([1,2,3,4,5,6]);
+ return arr.map(row=>row.map(x=>nums[x-1]));
+}
+function makeKendoku(){
+ const sol=latin6(), cages=[], used=new Set();
+ const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+ for(let r=0;r<6;r++)for(let c=0;c<6;c++){
+  if(used.has(r+","+c))continue;
+  let cells=[[r,c]];
+  used.add(r+","+c);
+  if(Math.random()<.65){
+   const cand=shuffle(dirs).map(d=>[r+d[0],c+d[1]])
+    .filter(x=>x[0]>=0&&x[0]<6&&x[1]>=0&&x[1]<6&&!used.has(x[0]+","+x[1]));
+   if(cand.length&&Math.random()<.72){
+    cells.push(cand[0]);used.add(cand[0][0]+","+cand[0][1]);
+   }
+  }
+  if(cells.length===2&&Math.random()<.3){
+   const base=cells[1],cand=shuffle(dirs).map(d=>[base[0]+d[0],base[1]+d[1]])
+    .find(x=>x[0]>=0&&x[0]<6&&x[1]>=0&&x[1]<6&&!used.has(x[0]+","+x[1]));
+   if(cand){cells.push(cand);used.add(cand[0]+","+cand[1])}
+  }
+  const vals=cells.map(x=>sol[x[0]][x[1]]);
+  let op="=",target=vals[0];
+  if(vals.length===1){op="="}
+  else if(vals.length===2){
+   if(Math.random()<.5){op="+";target=vals[0]+vals[1]}
+   else if(Math.random()<.5){op="×";target=vals[0]*vals[1]}
+   else{op="−";target=Math.abs(vals[0]-vals[1])}
+  }else{
+   op="+";target=vals.reduce((a,b)=>a+b,0);
+   if(Math.random()<.5){op="×";target=vals.reduce((a,b)=>a*b,1)}
+  }
+  cages.push({cells,op,target});
+ }
+ return {sol,cages};
+}
+function cageMap(q){
+ const m={};
+ q.cages.forEach((g,i)=>g.cells.forEach(cell=>m[cell[0]+","+cell[1]]={i,g}));
+ return m;
+}
+function renderKendoku(q){
+ const map=cageMap(q);
+ let h='<div class="kgrid">';
+ for(let r=0;r<6;r++)for(let c=0;c<6;c++){
+  const key=r+","+c,info=map[key],g=info.g;
+  const top=!g.cells.some(x=>x[0]===r-1&&x[1]===c);
+  const left=!g.cells.some(x=>x[0]===r&&x[1]===c-1);
+  const right=!g.cells.some(x=>x[0]===r&&x[1]===c+1);
+  const bottom=!g.cells.some(x=>x[0]===r+1&&x[1]===c);
+  h+=`<div class="kcell ${top?"cageTop":""} ${left?"cageLeft":""} ${right?"cageRight":""} ${bottom?"cageBottom":""}">
+   ${g.cells[0][0]===r&&g.cells[0][1]===c?`<span class="cageLabel">${g.target}${g.op}</span>`:""}
+   <input id="k${r}_${c}" inputmode="numeric" maxlength="1">
+  </div>`;
+ }
+ h+='</div><div class="panel" style="margin-top:12px"><b>Bölgeler:</b> '+
+ q.cages.map(g=>`${g.target}${g.op}`).join(" • ")+"</div>";
+ document.getElementById("gameArea").innerHTML=h;
+}
+function checkKendoku(){
+ const a=[];
+ for(let r=0;r<6;r++){
+  a[r]=[];
+  for(let c=0;c<6;c++){
+   const n=Number(document.getElementById(`k${r}_${c}`).value);
+   if(n<1||n>6){finishGame(false,"Tüm hücrelere 1–6 arasında sayı gir.");return}
+   a[r][c]=n;
+  }
+ }
+ for(let r=0;r<6;r++)if(new Set(a[r]).size<6){finishGame(false,"Bir satırda tekrar eden sayı var.");return}
+ for(let c=0;c<6;c++){
+  const s=new Set(a.map(r=>r[c]));if(s.size<6){finishGame(false,"Bir sütunda tekrar eden sayı var.");return}
+ }
+ for(const g of currentPuzzle.cages){
+  const v=g.cells.map(x=>a[x[0]][x[1]]);
+  let ok=false;
+  if(g.op==="=")ok=v[0]===g.target;
+  if(g.op==="+")ok=v.reduce((x,y)=>x+y,0)===g.target;
+  if(g.op==="×")ok=v.reduce((x,y)=>x*y,1)===g.target;
+  if(g.op==="−")ok=v.length===2&&Math.abs(v[0]-v[1])===g.target;
+  if(!ok){finishGame(false,"Bir işlem bölgesi yanlış.");return}
+ }
+ finishGame(true,"Harika! Kendoku tamamlandı.");
+}
+
+/* ---------- Apartman ---------- */
+function makeApartman(){
+ const sol=latin5();
+ const top=[],bottom=[],left=[],right=[];
+ for(let c=0;c<5;c++){top[c]=visible(sol.map(r=>r[c]));bottom[c]=visible(sol.map(r=>r[c]).reverse())}
+ for(let r=0;r<5;r++){left[r]=visible(sol[r]);right[r]=visible(sol[r].slice().reverse())}
+ return {sol,top,bottom,left,right};
+}
+function latin5(){
+ const a=[];
+ for(let r=0;r<5;r++)a[r]=[];
+ for(let r=0;r<5;r++)for(let c=0;c<5;c++)a[r][c]=(r+c)%5+1;
+ const nums=shuffle([1,2,3,4,5]);
+ return a.map(row=>row.map(x=>nums[x-1]));
+}
+function visible(arr){
+ let max=0,n=0;
+ arr.forEach(x=>{if(x>max){max=x;n++;}});
+ return n;
+}
+function renderApartman(q){
+ let h='<div class="apartment">';
+ h+='<div></div>';
+ q.top.forEach(x=>h+=`<div class="clue">${x}</div>`);
+ h+='<div></div>';
+ for(let r=0;r<5;r++){
+  h+=`<div class="clue">${q.left[r]}</div>`;
+  for(let c=0;c<5;c++)h+=`<div class="acell"><input id="a${r}_${c}" inputmode="numeric" maxlength="1"></div>`;
+  h+=`<div class="clue">${q.right[r]}</div>`;
+ }
+ h+='<div></div>';
+ q.bottom.forEach(x=>h+=`<div class="clue">${x}</div>`);
+ h+='<div></div></div>';
+ document.getElementById("gameArea").innerHTML=h;
+}
+function checkApartman(){
+ const a=[];
+ for(let r=0;r<5;r++){
+  a[r]=[];
+  for(let c=0;c<5;c++){
+   const n=Number(document.getElementById(`a${r}_${c}`).value);
+   if(n<1||n>5){finishGame(false,"Her hücreye 1–5 gir.");return}
+   a[r][c]=n;
+  }
+ }
+ for(let r=0;r<5;r++)if(new Set(a[r]).size<5){finishGame(false,"Satırlarda tekrar var.");return}
+ for(let c=0;c<5;c++)if(new Set(a.map(r=>r[c])).size<5){finishGame(false,"Sütunlarda tekrar var.");return}
+ for(let c=0;c<5;c++){
+  if(visible(a.map(r=>r[c]))!==currentPuzzle.top[c]||
+     visible(a.map(r=>r[c]).reverse())!==currentPuzzle.bottom[c]){
+   finishGame(false,"Bir sütunun görünürlük ipucu uyuşmuyor.");return;
+  }
+ }
+ for(let r=0;r<5;r++){
+  if(visible(a[r])!==currentPuzzle.left[r]||
+     visible(a[r].slice().reverse())!==currentPuzzle.right[r]){
+   finishGame(false,"Bir satırın görünürlük ipucu uyuşmuyor.");return;
+  }
+ }
+ finishGame(true,"Mükemmel! Apartman çözüldü.");
+}
+
+/* ---------- Resfebe ---------- */
+const rebusPool=[
+ ["C1","CEBİR","MEB"],
+ ["NNNNNN","ALTIN DIR","MEB"],
+ ["EL + Di + ters EV + N","ELDİVEN","MEB"],
+ ["S + AYI","SAYI","Toli Games"],
+ ["H + AY + AT","HAYAT","Toli Games"],
+ ["TEF + L + 10","TEFLON","Toli Games"],
+ ["YEL DEĞİRMENİ + KOVA + 10","YELKOVAN","Toli Games"],
+ ["KAR TANESİ + AT + E","KARATE","Toli Games"],
+ ["NAL − N + EV","ALEV","Toli Games"],
+ ["M + AY + MUZ(−Z) + N","MAYMUN","Toli Games"],
+ ["ters AY + ters AT + K","YATAK","Toli Games"],
+ ["ÇAM(−M) + DIR","ÇADIR","Toli Games"],
+ ["KEK(−K) + DİŞ(−Ş)","KEDİ","Toli Games"],
+
+];
+function makeRebus(){
+ const x=rebusPool[Math.floor(Math.random()*rebusPool.length)];
+ return {display:x[0],answer:x[1],source:x[2]};
+}
+function renderRebus(q){
+ document.getElementById("gameArea").innerHTML=`
+ <div class="rebus">${esc(q.display)}</div><div class="muted" style="text-align:center;margin-top:8px;font-size:11px">Kaynak: ${esc(q.source)} • Hazır yayımlanmış resfebe</div>
+ <div class="answerbox"><div class="field"><label>Kelime / cevap</label><input id="rebusAnswer" autocomplete="off"></div></div>`;
+}
+function checkRebus(){
+ const x=normalize(document.getElementById("rebusAnswer").value);
+ const a=normalize(currentPuzzle.answer);
+ if(x===a)finishGame(true,"Doğru! Resfebe çözüldü.");
+ else finishGame(false,"Cevap henüz doğru değil.");
+}
+
+/* =========================================================
+   MATEMATİK
+========================================================= */
+const mathItems=[
+ ["🧩","İki Kapı Problemi","Bir kapı doğru yola, diğeri yanlış yola gidiyor. İki bekçiden biri hep doğru, biri hep yanlış söylüyor. Tek soru hakkın var. Doğru kapıyı nasıl seçersin?","Bir bekçiye diğer bekçiye 'hangi kapı doğru?' diye sorsaydım hangisini gösterirdi?' diye sor ve gösterilenin tersini seç."],
+ ["🔢","Kare Sayıların Deseni","1, 4, 9, 16, 25 dizisini yalnızca ezberlemek yerine geometrik olarak nasıl açıklayabilirsin?","n² sayısı, kenarı n olan bir karenin birim kare sayısıdır. Ardışık kareler arasındaki farklar tek sayılardır."],
+ ["📐","Üçgen Neden 180°?","Bir üçgenin iç açıları neden her zaman 180° eder?","Bir köşeden karşı kenara paralel bir doğru düşün. Diğer iki açı, paralellik nedeniyle iç ters açılarla bu doğru üzerinde 180°lik düz açı oluşturur."],
+ ["🧠","İmkânsız Kare","Bir karenin alanı 36 ise çevresi neden yalnızca 24 olabilir? Başka bir değer neden olamaz?","Karenin alanı kenarın karesidir. √36=6 olduğundan çevre 4×6=24'tür."],
+ ["🔍","Diziyi Tamamla","3, 6, 11, 18, 27, ? Sayısında artışların nasıl değiştiğini keşfet.","Farklar 3,5,7,9 şeklinde artıyor. Sonraki fark 11 olduğundan cevap 38."],
+ ["🎯","Sıfırların Rolü","0'ın çift sayı olmasının mantığı nedir?","Çift sayı, 2'nin tam katı olan tam sayıdır. 0=2×0 olduğundan 0 çifttir."]
+];
+function renderMath(){
+ document.getElementById("mathList").innerHTML=mathItems.map((x,i)=>`
+ <div class="card">
+  <div class="icon">${x[0]}</div>
+  <h3>${x[1]}</h3><p>${x[2]}</p>
+  <button class="btn secondary" onclick="toggleAnswer(this)">🧠 Düşünceyi Gör</button>
+  <div class="proof" style="display:none">${x[3]}</div>
+ </div>`).join("");
+}
+function toggleAnswer(btn){
+ const p=btn.nextElementSibling;
+ p.style.display=p.style.display==="none"?"block":"none";
+}
+
+/* =========================================================
+   NEDEN BÖYLE
+========================================================= */
+const proofs=[
+ ["0⁰ neden özel?","Üs kurallarını doğrudan bütün durumlara uygulamak dikkat ister. Sıfırıncı kuvvetin a≠0 için 1 olması çarpma zincirinin tersinden gelir. Ancak 0⁰ ifadesi farklı bağlamlarda farklı şekilde ele alınır; limitlerde belirsiz biçim olarak da karşımıza çıkar. Bu yüzden 'her durumda 0⁰ kesinlikle tanımsızdır' demek de doğru değildir."],
+ ["Negatif × negatif neden pozitif?","Dağıma özelliğini korumak zorundayız. 0=(-a)+a olduğundan b ile çarparsak 0=(-a)b+ab olur. Eğer b negatifse işaretleri düzenlediğimizde iki negatif sayının çarpımının pozitif olması zorunlu hale gelir."],
+ ["√(a²) neden |a|?","Karekök sembolü asal kökü, yani negatif olmayan kökü ifade eder. a=-5 için a²=25 ve √25=5'tir. Sonuç -5 olamayacağı için √(a²)=|a| olur."],
+ ["1 neden asal değil?","Asal sayı tam olarak iki pozitif böleni olan 1'den büyük tam sayıdır. 1'in yalnızca bir pozitif böleni vardır: kendisi. Bu nedenle asal değildir."],
+ ["0 neden çift?","Çift sayı, 2'nin tam katı olan tam sayıdır. 0=2×0 olduğundan tanıma doğrudan uyar."],
+ ["π neden sabit?","Bir dairenin çevresinin çapına oranı, dairenin büyüklüğünden bağımsızdır. Daireyi büyüttüğümüzde çevre ve çap aynı oranda büyür; oran değişmez. Bu sabit π olarak adlandırılır."],
+ ["Pisagor teoremi neden çalışır?","Dik üçgende iki dik kenar üzerine kurulan karelerin alanlarının toplamı, hipotenüs üzerine kurulan karenin alanına eşittir. Bunu benzerlik, alan parçalama veya Öklid ispatlarıyla göstermek mümkündür."],
+ ["Dış açılar neden 360°?","Her köşede bir dış açı seçildiğinde üçgenin ya da çokgenin etrafında bir tam tur tamamlanır. Tam turun ölçüsü 360° olduğundan dış açıların toplamı 360° olur."],
+ ["Devirli ondalık neden kesir?","Örneğin x=0,333... olsun. 10x=3,333... çıkarılırsa 9x=3 elde edilir ve x=1/3 bulunur. Aynı fikir bütün devirli ondalıklara uygulanabilir."],
+ ["Üçgen alanı neden taban×yükseklik/2?","Üçgeni aynı büyüklükteki başka bir üçgenle birleştirdiğinde bir paralelkenar elde edilebilir. Paralelkenarın alanı taban×yükseklik olduğundan tek üçgen bunun yarısıdır."]
+];
+function renderProofs(){
+ document.getElementById("proofList").innerHTML=proofs.map(x=>`
+  <div class="panel">
+   <h3>💡 ${x[0]}</h3>
+   <div class="proof">${x[1]}</div>
+  </div>`).join("");
+}
+
+/* =========================================================
+   HAFTANIN SORUSU
+========================================================= */
+function checkWeekly(){
+ const ans=document.getElementById("weeklyAnswer").value;
+ const el=document.getElementById("weeklyFeedback");
+ /* 
+   A: "B'de" doğru
+   B: "B'de değil" yanlış
+   C: "A'da değil" yanlış
+   Ödül A => A cümlesi yanlış, B doğru, C yanlış => yalnız B doğru
+   Ödül B => A doğru, B yanlış, C doğru => iki doğru
+   Ödül C => A yanlış, B doğru, C doğru => iki doğru
+   Dolayısıyla A.
+ */
+ if(ans==="A"){
+  el.className="feedback ok";
+  el.textContent="Doğru! Ödül A kutusunda. Yalnızca B kutusundaki ifade doğru.";
+ }else{
+  el.className="feedback no";
+  el.textContent="Yanlış. A'yı dene ve üç olasılığı tek tek kontrol et.";
+ }
+}
+
+/* =========================================================
+   RAPORLAR
+========================================================= */
+function renderReports(){
+ document.getElementById("matchCount").textContent=state.matches.length+" maç";
+ const el=document.getElementById("historyReport");
+ if(!state.history.length){
+  el.innerHTML='<div class="empty">Henüz kayıt bulunmuyor.</div>';return;
+ }
+ el.innerHTML=`<table><thead><tr><th>Tarih</th><th>Tür</th><th>Sınıf</th><th>Oyuncular</th><th>Sonuç</th></tr></thead><tbody>${
+ state.history.slice(0,100).map(h=>{
+  if(h.type){
+   return `<tr><td>${esc(h.date)}</td><td>${esc(h.type)}</td><td>—</td><td>—</td><td>${esc(h.result||"")}</td></tr>`;
+  }
+  return `<tr><td>${esc(h.date)}</td><td>🏆 Maç</td><td>${esc(h.className)}</td><td>${esc(h.p1)} — ${esc(h.p2)}</td><td><b>${esc(h.winner)}</b> ${h.correct1}-${h.correct2}</td></tr>`;
+ }).join("")
+ }</tbody></table>`;
+}
+function downloadCSV(){
+ let rows=[["Tarih","Sınıf","Oyuncu 1","Doğru 1","Oyuncu 2","Doğru 2","Kazanan"]];
+ state.matches.forEach(m=>rows.push([m.date,m.className,m.p1,m.correct1,m.p2,m.correct2,m.winner]));
+ const csv="\uFEFF"+rows.map(r=>r.map(csvCell).join(";")).join("\n");
+ downloadBlob(csv,"zeka_akademisi_mac_raporu.csv","text/csv;charset=utf-8");
+}
+function csvCell(x){return '"'+String(x??"").replace(/"/g,'""')+'"'}
+function downloadPDF(){
+ if(!window.jspdf){alert("PDF kütüphanesi yüklenemedi. İnternet bağlantısını kontrol et.");return}
+ const {jsPDF}=window.jspdf;
+ const doc=new jsPDF();
+ let y=15;
+ doc.setFontSize(18);doc.text("Zeka Akademisi - Mac Raporu",14,y);y+=10;
+ doc.setFontSize(9);
+ doc.text("Tarih: "+new Date().toLocaleString("tr-TR"),14,y);y+=10;
+ state.matches.forEach((m,i)=>{
+  if(y>275){doc.addPage();y=15}
+  doc.text(`${i+1}. ${m.className} | ${m.p1} ${m.correct1} - ${m.correct2} ${m.p2} | Kazanan: ${m.winner}`,14,y);
+  y+=7;
+ });
+ doc.save("zeka_akademisi_rapor.pdf");
+}
+function backup(){
+ const data=JSON.stringify(state,null,2);
+ downloadBlob(data,"zeka_akademisi_yedek_"+dateFile()+".json","application/json");
+}
+function restoreBackup(input){
+ const file=input.files[0];if(!file)return;
+ const r=new FileReader();
+ r.onload=e=>{
+  try{
+   const x=JSON.parse(e.target.result);
+   if(!x.classes||!x.matches)throw Error();
+   if(confirm("Mevcut veriler yedekle değiştirilecek. Devam edilsin mi?")){
+    state=Object.assign(structuredClone(defaultState),x);
+    save();renderClasses();renderLeague();renderReports();fillClassSelects();
+    alert("Yedek başarıyla geri yüklendi.");
+   }
+  }catch(err){alert("Geçersiz Zekâ Akademisi yedeği.")}
+ };
+ r.readAsText(file);
+}
+function downloadBlob(data,name,type){
+ const blob=new Blob([data],{type});
+ const a=document.createElement("a");
+ a.href=URL.createObjectURL(blob);
+ a.download=name;
+ document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function dateFile(){
+ return new Date().toISOString().slice(0,10);
+}
+
+/* =========================================================
+   YARDIMCI
+========================================================= */
+function esc(x){
+ return String(x??"").replace(/[&<>"']/g,m=>({
+  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+ }[m]));
+}
+
+/* =========================================================
+   BAŞLANGIÇ
+========================================================= */
+renderClasses();
+toggleMatchMode();
+fillClassSelects();
+renderLeague();
+renderMath();
+renderProofs();
+renderReports();
+
+/* Fikstürdeki maça tıklanarak başlatma için yardımcı:
+   tabloya sonradan buton eklenebilir; burada genel eşleşme başlatma da var. */
+window.ZA_MATCH_QUESTIONS = matchQuestions;
+
+</script>
+<script type="module">
+/* =========================================================
+   ZEKÂ AKADEMİSİ — CLOUDFLARE WORKER ONLINE MİNİ DÜELLO
+   Worker API: https://zeka-pro-ligi.ahmedkadiri99-33c.workers.dev/
+   - Soru seçimi sunucuda
+   - Cevap anahtarı istemciye gönderilmez
+   - Puanlama sunucuda
+   - Gerçek zamanlı durum Worker üzerinden kısa aralıklarla alınır
+========================================================= */
+const ZA_WORKER_URL="https://zeka-pro-ligi.ahmedkadiri99-33c.workers.dev";
+const ZA_LOCAL_KEY="ZA_ONLINE_PLAYER_V3";
+
+let zaRoom=null,zaRoomData=null,zaPoll=null,zaBusy=false,zaPlayerData=null,zaWorkerReady=false;
+
+function zaEsc(x){return String(x??"").replace(/[&<>\"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));}
+function zaPlayer(){try{return JSON.parse(localStorage.getItem(ZA_LOCAL_KEY)||"null")}catch{return null}}
+function zaSavePlayer(x){localStorage.setItem(ZA_LOCAL_KEY,JSON.stringify(x))}
+function zaHeaders(token){
+ const h={"Content-Type":"application/json"};
+ if(token)h["X-Player-Token"]=token;
+ return h;
+}
+async function zaRequest(path,options={}){
+ const token=zaPlayer()?.playerToken||"";
+ const res=await fetch(ZA_WORKER_URL+path,{...options,headers:{...zaHeaders(token),...(options.headers||{})},cache:"no-store"});
+ let data=null;
+ try{data=await res.json()}catch{data={error:"INVALID_RESPONSE"}}
+ if(!res.ok||data?.error)throw new Error(zaErrorText(data?.error||("HTTP_"+res.status)));
+ return data;
+}
+function zaErrorText(e){
+ const map={
+  INVALID_BODY:"Geçersiz istek.",INVALID_NAME:"Ad veya rumuz 2–24 karakter olmalı.",INVALID_JOIN:"Kod veya ad geçersiz.",
+  CODE_NOT_FOUND:"Bu düello kodu bulunamadı.",MATCH_ALREADY_STARTED:"Bu düello zaten başladı.",MATCH_FULL:"Bu düello dolu.",
+  UNAUTHORIZED:"Düello oturumu geçersiz. Yeniden katılmayı dene.",NOT_FOUND:"Düello bulunamadı.",NOT_WAITING:"Düello artık bekleme durumunda değil.",
+  HOST_ONLY:"Yalnızca düelloyu oluşturan oyuncu başlatabilir.",BAD_STATUS:"Düello başlatılamadı.",BOTH_NOT_READY:"İki oyuncunun da Hazırım demesi gerekiyor.",
+  NOT_PLAYING:"Düello şu anda cevap kabul etmiyor.",BAD_QUESTION:"Soru durumu geçersiz.",QUESTION_NOT_FOUND:"Soru bulunamadı.",
+  ALREADY_ANSWERED:"Bu soruya zaten cevap verdin.",SERVER_ERROR:"Sunucu tarafında bir hata oluştu.",NOT_FOUND:"Düello bulunamadı."
+ };
+ return map[e]||String(e||"Bilinmeyen hata");
+}
+function zaName(){
+ const old=zaPlayer()?.name||"";
+ const n=prompt("Düelloda görünecek ad / rumuz:",old);
+ if(n===null)return null;
+ const name=n.trim().replace(/\s+/g," ").slice(0,24);
+ if(name.length<2){alert("En az 2 karakterlik bir ad veya rumuz yaz.");return null}
+ return name;
+}
+async function zaInit(){
+ const body=document.getElementById("onlineMiniDuelBody");
+ if(!body)return;
+ try{
+  const r=await fetch(ZA_WORKER_URL+"/",{cache:"no-store"});
+  const data=await r.json();
+  if(!r.ok||!data?.ok)throw new Error("Worker yanıt vermedi.");
+  zaWorkerReady=true;
+  body.innerHTML=`<div class="onlineStatus">🟢 <b>Online bağlantı hazır.</b><br>Soru seçimi, cevap kontrolü ve puanlama sunucu tarafından yapılır.</div><div class="row" style="margin-top:9px"><button class="btn cyan" onclick="ZAOnline.create()">🎯 Düello Oluştur</button><button class="btn" onclick="ZAOnline.showJoin()">🔑 Koda Katıl</button></div>`;
+ }catch(e){
+  zaWorkerReady=false;
+  body.innerHTML=`<div class="onlineStatus">🔴 <b>Online bağlantı kurulamadı.</b><br><small>${zaEsc(e.message||e)}</small></div><button class="btn secondary" onclick="ZAOnline.init()">🔄 Yeniden Dene</button>`;
+ }
+}
+function zaNeed(){
+ if(!zaWorkerReady){alert("Önce online bağlantının hazır olmasını bekle.");return false}
+ return true;
+}
+async function zaCreate(){
+ if(!zaNeed()||zaBusy)return;
+ const name=zaName();if(!name)return;
+ zaBusy=true;
+ try{
+  const r=await zaRequest("/duel/create",{method:"POST",body:JSON.stringify({name})});
+  zaSavePlayer({name,playerToken:r.playerToken,slot:r.slot,duelId:r.duelId,code:r.code});
+  zaRoom=r.duelId;
+  zaListen();
+ }catch(e){alert("Düello oluşturulamadı: "+(e.message||e))}
+ finally{zaBusy=false}
+}
+function zaShowJoin(){
+ if(!zaNeed())return;
+ const body=document.getElementById("onlineMiniDuelBody");
+ body.innerHTML=`<div class="field"><label>6 Haneli Düello Kodu</label><input id="zaJoinCode" inputmode="numeric" maxlength="6" placeholder="123456"></div><div class="row"><button class="btn" onclick="ZAOnline.join()">🚀 Düelloya Katıl</button><button class="btn secondary" onclick="ZAOnline.init()">← Geri</button></div>`;
+ setTimeout(()=>document.getElementById("zaJoinCode")?.focus(),50);
+}
+async function zaJoin(){
+ if(!zaNeed()||zaBusy)return;
+ const code=(document.getElementById("zaJoinCode")?.value||"").replace(/\D/g,"");
+ if(code.length!==6){alert("6 haneli düello kodunu gir.");return}
+ const name=zaName();if(!name)return;
+ zaBusy=true;
+ try{
+  const r=await zaRequest("/duel/join",{method:"POST",body:JSON.stringify({code,name})});
+  zaSavePlayer({name,playerToken:r.playerToken,slot:r.slot,duelId:r.duelId,code:r.code});
+  zaRoom=r.duelId;
+  zaListen();
+ }catch(e){alert("Düelloya katılınamadı: "+(e.message||e))}
+ finally{zaBusy=false}
+}
+function zaListen(){
+ if(zaPoll)clearInterval(zaPoll);
+ zaPoll=setInterval(zaRefresh,1000);
+ zaRefresh();
+}
+async function zaRefresh(){
+ if(!zaRoom)return;
+ try{
+  const d=await zaRequest("/duel/"+encodeURIComponent(zaRoom),{method:"GET"});
+  zaRoomData=d;
+  zaRenderRoom();
+ }catch(e){
+  if(String(e.message||e).includes("geçersiz")||String(e.message||e).includes("bulunamadı")){
+   zaStopPoll();zaRoom=null;zaRoomData=null;zaInit();
+  }
+ }
+}
+function zaStopPoll(){if(zaPoll){clearInterval(zaPoll);zaPoll=null}}
+function zaMe(){return (zaRoomData?.players||[]).find(p=>p.me)||null}
+function zaOpponent(){return (zaRoomData?.players||[]).find(p=>!p.me)||null}
+function zaRenderRoom(){
+ const body=document.getElementById("onlineMiniDuelBody");if(!body||!zaRoomData)return;
+ if(zaRoomData.status==="waiting")return zaRenderWaiting();
+ if(zaRoomData.status==="playing")return zaRenderPlaying();
+ if(zaRoomData.status==="finished")return zaRenderFinished();
+}
+function zaRenderWaiting(){
+ const body=document.getElementById("onlineMiniDuelBody"),ps=zaRoomData.players||[],me=zaMe(),host=Number(me?.slot)===0;
+ body.innerHTML=`<div class="onlineStatus">🎯 Arkadaşına bu kodu gönder.</div><div class="onlineCode">${zaEsc(zaRoomData.code)}</div><div class="onlinePlayers">${ps.map(p=>`<div class="onlinePlayer ${p.ready?"ready":""}"><b>${zaEsc(p.name)}</b><small>${p.ready?"🟢 Hazır":"⏳ Hazır değil"}</small></div>`).join("")}${ps.length<2?'<div class="onlinePlayer"><b>2. Oyuncu</b><small>🔗 Kod bekleniyor</small></div>':''}</div><div class="row" style="margin-top:10px"><button class="btn green" onclick="ZAOnline.ready()">${me?.ready?"↩ Hazır Değilim":"✓ Hazırım"}</button>${host?`<button class="btn cyan" onclick="ZAOnline.start()">🚀 Başlat</button>`:""}<button class="btn secondary" onclick="ZAOnline.leave()">🚪 Ayrıl</button></div>`;
+}
+async function zaReady(){
+ if(!zaNeed()||!zaRoom||zaBusy)return;
+ const me=zaMe();zaBusy=true;
+ try{await zaRequest("/duel/ready",{method:"POST",body:JSON.stringify({duelId:zaRoom,ready:!me?.ready})});await zaRefresh()}
+ catch(e){alert(e.message||e)}finally{zaBusy=false}
+}
+async function zaStart(){
+ if(!zaNeed()||!zaRoom||zaBusy)return;
+ zaBusy=true;
+ try{await zaRequest("/duel/start",{method:"POST",body:JSON.stringify({duelId:zaRoom})});await zaRefresh()}
+ catch(e){alert(e.message||e)}finally{zaBusy=false}
+}
+function zaRenderPlaying(){
+ const body=document.getElementById("onlineMiniDuelBody"),q=zaRoomData.question,me=zaMe(),op=zaOpponent();
+ if(!q){return zaRenderFinished()}
+ const idx=Number(zaRoomData.current||0);
+ const submitted=zaRoomData.submitted||{};
+ const mine=!!submitted[me?.slot];
+ const diff={kolay:"🟢 Kolay",orta:"🟡 Orta",zor:"🔴 Zor"}[q.difficulty]||"Orta";
+ body.innerHTML=`<div class="titleline"><h3>⚔️ Soru ${idx+1}/5</h3><span class="tag">${diff} • 100 Puan</span></div><div class="onlineOpponent"><span>Sen: <b>${zaEsc(me?.name||"-")}</b></span><strong>${Number(me?.score||0)}</strong></div><div class="onlineOpponent" style="margin-top:7px"><span>Rakip: <b>${zaEsc(op?.name||"-")}</b></span><strong>${Number(op?.score||0)}</strong></div><div class="onlineQ">${zaEsc(q.q)}</div><div class="proof"><b>${zaEsc(q.subject||"Zekâ")}</b> • ${String(q.grade).includes("-")?"Ortaokul":zaEsc(q.grade)+". sınıf"}</div>${mine?`<div class="onlineStatus">⏳ Cevabın alındı. ${op?"Rakibin cevabı bekleniyor…":"Rakip bekleniyor…"}</div>`:`<div class="field"><label>Cevabın</label><input id="zaAnswer" autocomplete="off" enterkeyhint="done"></div><button class="btn cyan" onclick="ZAOnline.answer()">⚡ Cevabı Gönder</button>`}`;
+ const input=document.getElementById("zaAnswer");
+ if(input)input.onkeydown=e=>{if(e.key==="Enter")ZAOnline.answer()};
+}
+async function zaAnswer(){
+ if(!zaNeed()||!zaRoom||zaBusy)return;
+ const input=document.getElementById("zaAnswer"),answer=input?.value?.trim()||"";
+ if(!answer){alert("Cevabını yaz.");return}
+ zaBusy=true;
+ try{await zaRequest("/duel/answer",{method:"POST",body:JSON.stringify({duelId:zaRoom,answer})});await zaRefresh()}
+ catch(e){alert(e.message||e)}finally{zaBusy=false}
+}
+function zaRenderFinished(){
+ const body=document.getElementById("onlineMiniDuelBody"),ps=[...(zaRoomData.players||[])].sort((a,b)=>Number(b.score||0)-Number(a.score||0));
+ const a=ps[0],b=ps[1],draw=a&&b&&Number(a.score)===Number(b.score);
+ zaStopPoll();
+ body.innerHTML=`<div class="onlineResult"><div style="font-size:50px">${draw?"🤝":"🏆"}</div><h3>${draw?"Beraberlik!":"🥇 "+zaEsc(a?.name||"Kazanan")}</h3><div class="big">${Number(a?.score||0)} — ${Number(b?.score||0)}</div><div class="muted">${zaEsc(a?.name||"")} • ${Number(a?.correct||0)} doğru</div><div class="muted">${zaEsc(b?.name||"")} • ${Number(b?.correct||0)} doğru</div></div><div class="row" style="margin-top:10px"><button class="btn cyan" onclick="ZAOnline.create()">⚔️ Yeni Düello</button><button class="btn secondary" onclick="ZAOnline.leave()">← Pro Lige Dön</button></div>`;
+}
+async function zaLeave(){
+ try{if(zaRoom)await zaRequest("/duel/leave",{method:"POST",body:JSON.stringify({duelId:zaRoom})})}catch{}
+ zaStopPoll();zaRoom=null;zaRoomData=null;zaBusy=false;localStorage.removeItem(ZA_LOCAL_KEY);zaInit();
+}
+window.ZAOnline={create:zaCreate,showJoin:zaShowJoin,join:zaJoin,ready:zaReady,start:zaStart,answer:zaAnswer,leave:zaLeave,init:zaInit};
+zaInit();
+</script>
+
+</body>
+</html>

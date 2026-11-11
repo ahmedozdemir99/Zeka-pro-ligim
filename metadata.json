@@ -1,0 +1,6 @@
+{
+  "name": "Zekâ Akademisi • Pro Lig & Zekâ Oyunları",
+  "description": "Ortaokul matematik, mantık, zekâ oyunları (Sudoku, Kendoku, Apartman, Resfebe), düello, takım yarışı, online yarışma, MEB/LGS beceri temelli sorular ve AI Zekâ Koçu platformu.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    background-color: #0b1128;
+    background-image: 
+      radial-gradient(circle at 10% 0%, rgba(128, 92, 255, 0.22), transparent 35%),
+      radial-gradient(circle at 95% 15%, rgba(40, 216, 208, 0.15), transparent 32%),
+      radial-gradient(circle at 50% 80%, rgba(255, 211, 90, 0.05), transparent 50%);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(11, 17, 40, 0.8);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(128, 92, 255, 0.3);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(128, 92, 255, 0.6);
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-6px) rotate(2deg); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 15px rgba(128, 92, 255, 0.3); }
+  50% { box-shadow: 0 0 30px rgba(40, 216, 208, 0.5); }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+/* Game Board Borders & Cells */
+.sudoku-cell {
+  transition: all 0.15s ease;
+}
+.sudoku-cell:focus {
+  background-color: rgba(128, 92, 255, 0.25) !important;
+  box-shadow: inset 0 0 0 2px #28d8d0;
+}
+
+.kendoku-cell {
+  transition: all 0.15s ease;
+}
+.kendoku-cell:focus {
+  background-color: rgba(40, 216, 208, 0.25) !important;
+  box-shadow: inset 0 0 0 2px #ffd35a;
+}
+
+/* Print Rules for Reports */
+@media print {
+  header, nav, button, .no-print {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+  }
+}
