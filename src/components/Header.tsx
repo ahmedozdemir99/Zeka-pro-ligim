@@ -1,5 +1,5 @@
 import React from 'react';
-import { Volume2, VolumeX, Sparkles, Trophy, School, Puzzle, Calculator, Lightbulb, Star, BarChart3, Home } from 'lucide-react';
+import { Volume2, VolumeX, Sparkles, Trophy, School, Puzzle, Star, BarChart3, Home } from 'lucide-react';
 import { AppState } from '../types';
 import { sound } from '../utils/sound';
 
@@ -23,8 +23,6 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'league', label: '🏆 Pro Lig', icon: Trophy },
     { id: 'classes', label: '🏫 Sınıflarım', icon: School },
     { id: 'games', label: '🧩 Zekâ Oyunları', icon: Puzzle },
-    { id: 'math', label: '🔢 Matematik', icon: Calculator },
-    { id: 'why', label: '💡 Neden Böyle?', icon: Lightbulb },
     { id: 'weekly', label: '⭐ Haftanın Sorusu', icon: Star },
     { id: 'reports', label: '📊 Raporlar', icon: BarChart3 },
   ];
@@ -51,7 +49,7 @@ export const Header: React.FC<HeaderProps> = ({
                   PRO LİG
                 </span>
               </h1>
-              <p className="text-xs text-slate-400 font-medium">Matematik • Mantık • Zekâ Oyunları</p>
+              <p className="text-xs text-slate-400 font-medium">LGS • 6 Ders • Zekâ Oyunları</p>
             </div>
           </div>
 
