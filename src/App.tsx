@@ -4,8 +4,6 @@ import { HomeSection } from './components/HomeSection';
 import { ClassesSection } from './components/ClassesSection';
 import { LeagueSection } from './components/LeagueSection';
 import { GamesSection } from './components/GamesSection';
-import { MathSection } from './components/MathSection';
-import { WhySection } from './components/WhySection';
 import { WeeklySection } from './components/WeeklySection';
 import { ReportsSection } from './components/ReportsSection';
 import { WinnerModal } from './components/WinnerModal';
@@ -503,9 +501,6 @@ export default function App() {
           <GamesSection onGameFinish={handleGameFinish} />
         )}
 
-        {activeSection === 'math' && <MathSection />}
-
-        {activeSection === 'why' && <WhySection />}
 
         {activeSection === 'weekly' && <WeeklySection />}
 
