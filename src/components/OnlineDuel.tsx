@@ -1,3 +1,4 @@
+import { formatMatchScore } from '../utils/matchScore';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { Course, Figure, MatchSettings } from '../types';
 import type { Attempt, Profile, StudentResult } from '../utils/student';
@@ -268,7 +269,7 @@ export function OnlineDuel({ profile, onRecord }: { profile?: Profile | null; on
             <>
               <div className="flex flex-wrap items-center justify-between gap-2"><h4 className="font-extrabold">Soru {Number(room.current) + 1} / {room.total ?? 5}{room.question.course && ' · ' + courseName(room.question.course, room.grade)}</h4><Timer deadline={deadline} /></div>
               <ul className="flex flex-wrap gap-2 text-sm">
-                {room.players.map(player => <li key={player.slot} className="rounded-lg bg-[#101732] px-3 py-2">{player.name} · {player.score} puan</li>)}
+                {room.players.map(player => <li key={player.slot} className="rounded-lg bg-[#101732] px-3 py-2">{player.name} · {formatMatchScore(player.score)}/100 puan</li>)}
               </ul>
               {room.question.category === 'adaptation' && <p className="text-xs font-semibold text-cyan-200">Kaynak uyarlaması</p>}
               <p className="rounded-xl bg-[#101732] p-4">{room.question.q}</p>
@@ -287,7 +288,7 @@ export function OnlineDuel({ profile, onRecord }: { profile?: Profile | null; on
               <h4 className="font-black">Düello Tamamlandı</h4>
               {winner && <p className="font-bold text-cyan-200">{draw ? 'Beraberlik' : `Kazanan: ${winner.name}`}</p>}
               {room.forfeitWinner !== undefined && <p>Rakip odadan ayrıldı.</p>}
-              {finishedPlayers.map(player => <p key={player.slot}>{player.name} · {player.score} puan · {player.correct} doğru</p>)}
+              {finishedPlayers.map(player => <p key={player.slot}>{player.name} · {formatMatchScore(player.score)}/100 puan · {player.correct} doğru</p>)}
             </div>
           )}
           <button className={secondary} disabled={busy} onClick={() => move('leave')}>{room?.status === 'finished' ? 'Yeni Düelloya Dön' : 'Odadan Ayrıl'}</button>

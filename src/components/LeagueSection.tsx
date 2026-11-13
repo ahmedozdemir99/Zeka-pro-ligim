@@ -1,3 +1,4 @@
+import { formatMatchScore, matchScore } from '../utils/matchScore';
 import { useState } from 'react';
 import { ArrowLeft, ArrowRight, CalendarDays, Flag, Shield, Trophy, User, Users } from 'lucide-react';
 import type { ClassTeam, Fixture, MatchHistoryRecord, MatchSetup, MatchState, StudentClass } from '../types';
@@ -68,10 +69,10 @@ function MatchBoard({ match, onAnswer, onCancel, drafts, onDraft }: {
             {match.p1}
             {match.team1 && <p className="mt-1 text-xs font-normal text-slate-300">{match.team1.members.join(', ')}</p>}
           </div>
-          <div className="league-score" aria-label={solo ? `${match.correct1} gol` : `Skor ${match.correct1} - ${match.correct2}`}>
-            {solo ? match.correct1 : `${match.correct1} – ${match.correct2}`}
+          <div className="league-score" aria-label={solo ? `${formatMatchScore(matchScore(match.correct1, match.questions.length))} puan` : `Skor ${formatMatchScore(matchScore(match.correct1, match.questions.length))} - ${formatMatchScore(matchScore(match.correct2, match.questions.length))}`}>
+            {formatMatchScore(matchScore(match.correct1, match.questions.length))}{!solo && ` – ${formatMatchScore(matchScore(match.correct2, match.questions.length))}`} <span className="text-sm">/ 100</span>
           </div>
-          {solo ? <p className="text-xs text-slate-200">Gol</p> : (
+          {solo ? <p className="text-xs text-slate-200">Puan</p> : (
             <div className="min-w-0 break-words text-sm font-bold">
               {match.p2}
               {match.team2 && <p className="mt-1 text-xs font-normal text-slate-300">{match.team2.members.join(', ')}</p>}
@@ -322,7 +323,7 @@ export function LeagueSection({
       {mode === 'solo' ? (
         <section className="league-panel space-y-3">
           <h3 className="league-section-title !mb-0">Hızlı Maç</h3>
-          <p className="text-sm text-slate-300">Her doğru cevap bir gol. Maç sonunda skorunu ve çözümleri gör.</p>
+          <p className="text-sm text-slate-300">Her maç 100 puan üzerinden. Sorular eşit ağırlıkta.</p>
           <form className="flex flex-wrap items-end gap-3" onSubmit={event => { event.preventDefault(); onStartMatch({ mode, grade, settings }); }}>
             <label className="league-field min-w-40">Sınıf düzeyi
               <select value={grade} onChange={event => { setGrade(event.target.value); setSettings(previous => ({ ...previous, outcomeCode: undefined })); }}>

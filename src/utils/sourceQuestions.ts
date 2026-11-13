@@ -6,6 +6,8 @@ const sample = 'https://meb.ai/URbuoyJ';
 const burs = (grade: number) => `https://cdn.eba.gov.tr/yardimcikaynaklar/2026/04/bursluluk/${grade}_sinifA_26.pdf`;
 
 export const officialQuestionSources = [
+  { label: 'MEB · Beceri temelli sorular', url: 'https://odsgm.meb.gov.tr/www/5-6-ve-7-sinif-duzeylerinde-beceri-temelli-sorular-yayimlanmistir/icerik/491' },
+  { label: 'MEBİ · LGS örnek soruları', url: 'https://meb.gov.tr/lgsye-yonelik-birinci-ornek-soru-kitapciklari-mebide-yayimlandi/haber/39138/tr' },
   { label: 'PISA 2022 · OECD', url: pisa },
   { label: '2026 LGS · Sayısal A', url: lgs },
   { label: '2026 İOKBS · Bursluluk', url: 'https://odsgm.meb.gov.tr/www/ilkogretim-ve-ortaogretim-kurumlari-bursluluk-sinavi-iokbs-2026-soru-kitapciklari-ve-cevap-anahtarlari-yayimlandi/icerik/1615/' },

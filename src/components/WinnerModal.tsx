@@ -1,3 +1,4 @@
+import { formatMatchScore, matchScore } from '../utils/matchScore';
 import { useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { Trophy } from 'lucide-react';
@@ -23,8 +24,8 @@ export function WinnerModal({ match, onClose }: { match: MatchState; onClose: ()
       <div role="dialog" aria-modal="true" aria-labelledby="match-result-title" className="league-panel max-h-[90vh] w-full max-w-xl space-y-4 overflow-y-auto">
         <div className="league-scoreboard space-y-3 text-center">
           <h2 id="match-result-title" className="flex items-center justify-center gap-2 text-xl font-black"><Trophy size={21} className="text-rose-200" aria-hidden="true" /> Maç Sonucu</h2>
-          <p className="league-score">{solo ? `${match.correct1} / ${match.questions.length}` : `${match.correct1} – ${match.correct2}`}</p>
-          <p className="break-words text-sm font-bold">{solo ? 'Gol' : `${match.p1} · ${match.p2}`}</p>
+          <p className="league-score">{formatMatchScore(matchScore(match.correct1, match.questions.length))}{!solo && ` – ${formatMatchScore(matchScore(match.correct2, match.questions.length))}`} <span className="text-sm">/ 100</span></p>
+          <p className="break-words text-sm font-bold">{solo ? `${match.correct1} / ${match.questions.length} doğru` : `${match.p1} · ${match.p2}`}</p>
           {!solo && <p className="text-sm font-bold text-sky-200">{draw ? 'Beraberlik · İki tarafa 1 puan' : `${winner} kazandı · 3 lig puanı`}</p>}
         </div>
         <details>
@@ -34,12 +35,12 @@ export function WinnerModal({ match, onClose }: { match: MatchState; onClose: ()
               const showAnswer = (answer: string | undefined, name: string) => (
                 <p className="mt-1 text-sm text-slate-200">{name} · {answer || 'Pas'}
                   <span className={correctAnswer(question, answer || '') ? 'text-sky-200' : 'text-rose-200'}>
-                    {correctAnswer(question, answer || '') ? ' · Gol' : answer ? ' · Yanlış' : ''}
+                    {correctAnswer(question, answer || '') ? ' · Doğru' : answer ? ' · Yanlış' : ''}
                   </span>
                 </p>
               );
               return (
-                <li key={question.q}>
+                <li key={index}>
                   <details className="rounded-xl border border-white/10 bg-black/15 p-3">
                     <summary className="cursor-pointer text-sm font-bold">{index + 1}. soru · {question.subject}</summary>
                     <p className="mt-2 text-sm">{question.q}</p><Diagram figure={question.figure} />

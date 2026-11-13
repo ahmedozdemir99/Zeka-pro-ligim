@@ -1,3 +1,4 @@
+import { formatMatchScore, matchScore } from '../utils/matchScore';
 import { useState } from 'react';
 import type { Question } from '../types';
 import { answerOptions, courseName, courses, poolFor } from '../utils/competition';
@@ -140,11 +141,11 @@ function ProfileForm({ account, onSaved, onRecord, syncError, onRetry }: {
       {syncError && <div className="league-panel"><p role="status">Bazı sonuçlar henüz kaydedilemedi.</p><button className="league-secondary" onClick={onRetry}>Yeniden Dene</button></div>}
       <section className="league-panel space-y-3">
         <h3 className="font-black">Maç Sonuçlarım</h3>
-        <p className="text-sm">{played.length} maç · {played.reduce((sum, r) => sum + (r.points ?? r.scored * 100), 0)} puan</p>
+        <p className="text-sm">{played.length} maç · {formatMatchScore(played.reduce((sum, r) => sum + matchScore(r.scored, r.total), 0))} toplam puan</p>
         {account.results.length ? <ul className="divide-y divide-white/10">{account.results.slice(0, historyLimit).map(r =>
           <li key={r.id} className="flex flex-wrap justify-between gap-2 py-2 text-sm">
             <div><b>{resultLabels[r.kind]}</b><p className="text-xs text-slate-300">{dateFormat.format(new Date(r.date))}</p></div>
-            <b>{r.conceded === undefined ? `${r.scored}/${r.total} doğru` : `${r.scored} – ${r.conceded}`}{r.points !== undefined && ` · ${r.points} puan`}</b>
+            <b>{r.conceded === undefined ? `${r.scored}/${r.total} doğru` : `${r.scored} – ${r.conceded}`} · {formatMatchScore(matchScore(r.scored, r.total))}/100 puan</b>
           </li>)}</ul> : <p>İlk maçını bitirdiğinde sonucun burada görünecek.</p>}
         {historyLimit < account.results.length && <button className="league-secondary" onClick={() => setHistoryLimit(historyLimit + 15)}>Daha Eski Sonuçlar</button>}
       </section>

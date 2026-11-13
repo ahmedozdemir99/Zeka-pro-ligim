@@ -1,3 +1,4 @@
+import { skillQuestions } from './skillQuestions';
 import type { Course, MatchSettings, Question } from '../types';
 import { reviewedQuestions } from './tymmBank';
 import { mathOutcomeQuestions } from './mathOutcomes';
@@ -27,13 +28,25 @@ const reviewedMath = allQuestions.flatMap(q => {
   if (grade === 6 && /ondalık/.test(label)) outcomeCode = 'MAT.6.1.7';
   if (grade === 6 && /ortak kat/.test(label)) outcomeCode = 'MAT.6.1.4';
   if (grade === 7 && /rasyonel/.test(label)) outcomeCode = 'MAT.7.1.4';
+  if (grade === 8 && q.category === 'adaptation') {
+    if (/ortak kat|ebob/.test(label)) outcomeCode = 'M.8.1.1.2';
+    if (/olasılık/.test(label)) outcomeCode = 'M.8.5.1.5';
+    if (/eşitsizlik/.test(label)) outcomeCode = 'M.8.2.3.1';
+    if (/çarpanlara/.test(label)) outcomeCode = 'M.8.2.1.3';
+  }
   if (grade === 8 && /pisagor/.test(label)) outcomeCode = 'M.8.3.1.5';
   if (!outcomeCode) return [];
-  const outcome = mathOutcomeQuestions.find(question => question.outcomeCode === outcomeCode)?.outcome;
+  const labels: Record<string, string> = {
+    'M.8.5.1.5': 'Basit olayların olasılığını hesaplama',
+    'M.8.2.3.1': 'Gerçek hayat durumlarını eşitsizlikle ifade etme',
+    'M.8.2.1.3': 'Cebirsel ifadeleri çarpanlarına ayırma',
+  };
+  const outcome = labels[outcomeCode] ?? [...mathOutcomeQuestions, ...skillQuestions]
+    .find(question => question.outcomeCode === outcomeCode)?.outcome ?? q.subject;
   return [{ ...q, course: 'mathematics' as const, outcomeCode, outcome }];
 });
 export const competitionBank = [
-  ...reviewedQuestions, ...mathOutcomeQuestions, ...reviewedMath,
+  ...skillQuestions, ...reviewedQuestions, ...mathOutcomeQuestions, ...reviewedMath,
   ...courseBank,
 ];
 export const poolFor = (grade: string | number, course: Course) => [...new Map(competitionBank
@@ -60,8 +73,14 @@ export function answerOptions(q: Question): string[] | undefined {
 export function correctAnswer(q: Question, value: string) {
   if (!value.trim() || (q.options && !q.options.includes(value.trim()))) return false;
   const clean = (answer: string) => answer.trim().replace(/[.!?]$/, '');
-  return [q.a, ...(q.alternatives ?? [])].some(answer => q.course === 'english'
-    ? clean(value).toLowerCase() === clean(answer).toLowerCase() : isCorrectAnswer(clean(value), clean(answer)));
+  const fraction = (text: string) => /^([+−-]?\d+)\s*\/\s*([1-9]\d*)$/.exec(clean(text));
+  return [q.a, ...(q.alternatives ?? [])].some(answer => {
+    if (q.course === 'english') return clean(value).toLowerCase() === clean(answer).toLowerCase();
+    if (isCorrectAnswer(clean(value), clean(answer))) return true;
+    const given = fraction(value), expected = fraction(answer);
+    return Boolean(given && expected &&
+      BigInt(given[1].replace('−', '-')) * BigInt(expected[2]) === BigInt(expected[1].replace('−', '-')) * BigInt(given[2]));
+  });
 }
 export function competitionQuestions(grade: string, count: 5 | 10, settings: MatchSettings) {
   function choose(course: Course, size: number) {
@@ -71,15 +90,24 @@ export function competitionQuestions(grade: string, count: 5 | 10, settings: Mat
       const options = answerOptions(question);
       return options?.length === 4 ? [{ ...question, options }] : [];
     });
-    if (settings.outcomeCode || course !== 'mathematics') return shuffle(pool).slice(0, size);
+    const primary = shuffle(pool.filter(q => q.skillBased || q.category === 'adaptation'));
+    const secondary = shuffle(pool.filter(q => !primary.includes(q)));
+    if (settings.outcomeCode || course !== 'mathematics') return [...primary, ...secondary].slice(0, size);
     const figure = shuffle(pool.filter(q => q.figure))[0];
-    if (size <= 2) return figure ? [figure, ...shuffle(pool.filter(q => !q.figure)).slice(0, size - 1)] : shuffle(pool).slice(0, size);
+    if (size === 1 && figure) return [figure];
+    if (size === 2) return figure ? [figure, ...[...primary, ...secondary].filter(q => !q.figure).slice(0, size - 1)] : [...primary, ...secondary].slice(0, size);
     const selected = pickQuestions(grade, 'mixed', size === 10 ? 10 : 5, pool);
     if (figure && !selected.some(q => q.figure)) {
       const replace = selected.findIndex(q => q.category !== 'adaptation' && q.difficulty === figure.difficulty);
       if (replace >= 0) selected[replace] = figure;
       else if (selected.length < size) selected.push(figure);
       else selected[selected.length - 1] = figure;
+    }
+    const reasoning = primary.find(q => q.skillBased);
+    if (reasoning && !selected.includes(reasoning)) {
+      const replace = selected.findIndex(q => !q.figure && q.category !== 'adaptation');
+      if (replace >= 0) selected[replace] = reasoning;
+      else if (selected.length < size) selected.push(reasoning);
     }
     const used = new Set(selected);
     const fill = shuffle(pool.filter(q => !used.has(q) && (!q.figure || !selected.some(item => item.figure))));

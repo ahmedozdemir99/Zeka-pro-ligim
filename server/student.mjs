@@ -1,4 +1,5 @@
 import { crests, resultLabels } from '../src/utils/student.ts';
+import { matchScore } from '../src/utils/matchScore.ts';
 import { courses } from '../src/utils/competition.ts';
 
 const json = (data, status = 200) => Response.json(data, { status, headers: { 'Cache-Control': 'private, no-store' } });
@@ -13,7 +14,6 @@ function resultOk(r) {
   return typeof r?.id === 'string' && /^[A-Za-z0-9_-]{1,80}$/.test(r.id) && Object.hasOwn(resultLabels, r.kind) &&
     count(r.total) && r.total > 0 && count(r.scored) && r.scored <= r.total &&
     (r.conceded === undefined || (count(r.conceded) && r.conceded <= r.total)) &&
-    (r.points === undefined || (Number.isInteger(r.points) && r.points >= 0 && r.points <= 1560)) &&
     Array.isArray(r.attempts) && r.attempts.length <= r.total && r.attempts.every(a =>
       grade(a?.grade) && courses.includes(a.course) && typeof a.outcome === 'string' && a.outcome.length > 0 &&
       a.outcome.length <= 160 && (a.outcomeCode === undefined || (typeof a.outcomeCode === 'string' && a.outcomeCode.length <= 30)) && ['correct', 'wrong', 'blank'].includes(a.status));
@@ -48,7 +48,8 @@ export async function handleStudent(request, db, user) {
     if (url.pathname === '/api/student/result' && resultOk(data)) {
       const hasProfile = await db.prepare('SELECT 1 FROM student_profiles WHERE user_id = ?').bind(user).first();
       if (!hasProfile) return json({ error: 'PROFILE_REQUIRED' }, 409);
-      const { id, kind, scored, conceded, points, total, attempts } = data;
+      const { id, kind, scored, conceded, total, attempts } = data;
+      const points = matchScore(scored, total);
       const date = new Date().toISOString();
       await db.prepare('INSERT OR IGNORE INTO student_results (user_id, id, date, result) VALUES (?, ?, ?, ?)')
         .bind(user, id, date, JSON.stringify({ id, kind, scored, conceded, points, total, attempts, date })).run();

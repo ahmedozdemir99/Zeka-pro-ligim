@@ -24,7 +24,7 @@ export function HomeSection({ onNavigate, onMatch }: {
         <div className="league-hero-content">
           <p className="league-kicker"><Trophy size={15} aria-hidden="true" /> 5–8. sınıf matematik ligi</p>
           <h2 className="league-display">Zekâ Pro<br /><span>Ligim</span></h2>
-          <p className="max-w-sm text-base leading-relaxed text-slate-200">Seçtiğin dersin sorularını çöz, gol at ve sınıf liginde puan topla.</p>
+          <p className="max-w-sm text-base leading-relaxed text-slate-200">Seçtiğin dersin sorularını çöz, puan kazan ve sınıf liginde puan topla.</p>
           <button type="button" className="league-primary mt-6" onClick={() => onMatch('solo')}>
             Hızlı Maç <ArrowRight size={18} aria-hidden="true" />
           </button>

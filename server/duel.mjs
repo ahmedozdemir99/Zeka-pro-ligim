@@ -1,3 +1,4 @@
+import { matchScore } from '../src/utils/matchScore.ts';
 import { competitionQuestions, correctAnswer, defaults, validSettings } from '../src/utils/competition.ts';
 import { studentAttempt } from '../src/utils/student.ts';
 
@@ -61,7 +62,7 @@ function publicRoom(row, room, slot, now) {
     attempts: room.status === 'finished' ? room.players[slot].attempts ?? [] : undefined,
     players: room.players.flatMap((player, index) => player ? [{
       slot: index, name: player.name, ready: player.ready,
-      me: index === slot, score: player.score, correct: player.correct,
+      me: index === slot, score: matchScore(player.correct, room.questions.length), correct: player.correct,
     }] : []),
     submitted: room.submitted,
     forfeitWinner: room.forfeitWinner,
@@ -180,7 +181,7 @@ export async function handleDuel(request, db) {
         addAttempt(room, slot, input.answer);
         if (correctAnswer(question, input.answer)) {
           room.players[slot].correct++;
-          room.players[slot].score += now - room.startedAt <= 10000 ? 130 : 100;
+          room.players[slot].score = matchScore(room.players[slot].correct, room.questions.length);
         }
         room.submitted[slot] = true;
         if (room.submitted[0] && room.submitted[1]) nextQuestion(room, now);

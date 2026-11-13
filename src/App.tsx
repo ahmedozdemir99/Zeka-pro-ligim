@@ -1,3 +1,4 @@
+import { formatMatchScore, matchScore } from './utils/matchScore';
 import React, { useState, useEffect, useEffectEvent, useRef } from 'react';
 import { Header } from './components/Header';
 import { TrainingSection } from './components/TrainingSection';
@@ -360,6 +361,8 @@ export default function App() {
 
   const finishMatch = (completedMatch: MatchState) => {
     const c = state.classes.find(x => x.id === completedMatch.classId);
+    const homeScore = matchScore(completedMatch.correct1, completedMatch.questions.length);
+    const awayScore = matchScore(completedMatch.correct2, completedMatch.questions.length);
     const profile = account?.accountKey === matchOwner.current ? account?.profile : undefined;
     if (profile) {
       const { id, mode, p1, p2, team1, team2, questions, correct1, correct2, answers1, answers2 } = completedMatch;
@@ -368,7 +371,7 @@ export default function App() {
       const away = sameClass && (mode === 'duel' ? p2 === profile.name : team2?.members.includes(profile.name));
       if (home || away) recordResult({
         id, kind: mode, scored: home ? correct1 : correct2, conceded: mode === 'solo' ? undefined : home ? correct2 : correct1,
-        total: questions.length, date: new Date().toISOString(),
+        total: questions.length, points: home ? homeScore : awayScore, date: new Date().toISOString(),
         attempts: mode === 'team' ? [] : questions.map((q, i) => studentAttempt(q, (home ? answers1 : answers2)[i] ?? '')),
       });
     }
@@ -398,7 +401,7 @@ export default function App() {
       correct1: completedMatch.correct1,
       correct2: completedMatch.correct2,
       winner,
-      result: completedMatch.mode === 'solo' ? `${completedMatch.correct1}/${completedMatch.questions.length} gol` : undefined,
+      result: completedMatch.mode === 'solo' ? `${formatMatchScore(homeScore)}/100 puan` : `${formatMatchScore(homeScore)} – ${formatMatchScore(awayScore)} / 100`,
       answers1: completedMatch.answers1,
       answers2: completedMatch.answers2
     };
@@ -427,18 +430,18 @@ export default function App() {
           if (completedMatch.correct1 > completedMatch.correct2) {
             r1.wins++;
             r2.losses++;
-            r1.points += completedMatch.correct1 * 100 + 50;
-            r2.points += completedMatch.correct2 * 100;
+            r1.points += homeScore;
+            r2.points += awayScore;
           } else if (completedMatch.correct2 > completedMatch.correct1) {
             r2.wins++;
             r1.losses++;
-            r2.points += completedMatch.correct2 * 100 + 50;
-            r1.points += completedMatch.correct1 * 100;
+            r2.points += awayScore;
+            r1.points += homeScore;
           } else {
             r1.draws++;
             r2.draws++;
-            r1.points += completedMatch.correct1 * 100;
-            r2.points += completedMatch.correct2 * 100;
+            r1.points += homeScore;
+            r2.points += awayScore;
           }
         }
 
@@ -460,7 +463,7 @@ export default function App() {
           return {
             ...fx,
             status: 'Tamamlandı' as const,
-            result: `${completedMatch.p1} ${completedMatch.correct1}–${completedMatch.correct2} ${completedMatch.p2}`
+            result: `${completedMatch.p1} ${formatMatchScore(homeScore)}–${formatMatchScore(awayScore)} ${completedMatch.p2} (/100)`
           };
         }
         return fx;
@@ -468,7 +471,7 @@ export default function App() {
 
       return {
         ...prev,
-        score: prev.score + completedMatch.correct1 * 100,
+        score: prev.score + homeScore,
         solved: prev.solved + completedMatch.correct1,
         classes: updatedClasses,
         fixtures: updatedFixtures,

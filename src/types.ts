@@ -35,6 +35,7 @@ export interface Question {
   course?: Course;
   outcome?: string;
   outcomeCode?: string;
+  skillBased?: boolean;
   options?: string[];
   distractors?: string[];
   alternatives?: string[];

@@ -70,7 +70,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Live Stats */}
         <div className="grid grid-cols-3 gap-2 mt-3">
           <div className="bg-white/5 border border-white/10 rounded-xl p-2 text-center">
-            <b className="block text-lg font-extrabold text-cyan-400">{state.score || 0}</b>
+            <b className="block text-lg font-extrabold text-cyan-400">{(state.score || 0).toLocaleString('tr-TR', { maximumFractionDigits: 2 })}</b>
             <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">TOPLAM PUAN</span>
           </div>
           <div className="bg-white/5 border border-white/10 rounded-xl p-2 text-center">
