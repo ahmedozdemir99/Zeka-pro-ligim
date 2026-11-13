@@ -1,83 +1,61 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { Trophy, Award, CheckCircle2, X } from 'lucide-react';
+import { Trophy } from 'lucide-react';
+import type { MatchState } from '../types';
+import { correctAnswer } from '../utils/competition';
+import { Diagram } from './CompetitionControls';
 import { sound } from '../utils/sound';
 
-interface WinnerModalProps {
-  winner: string | null;
-  p1Name: string;
-  p2Name: string;
-  score1: number;
-  score2: number;
-  isTeam?: boolean;
-  onClose: () => void;
-}
+export function WinnerModal({ match, onClose }: { match: MatchState; onClose: () => void }) {
+  const solo = match.mode === 'solo';
+  const draw = match.correct1 === match.correct2;
+  const winner = match.correct1 > match.correct2 ? match.p1 : match.p2;
 
-export const WinnerModal: React.FC<WinnerModalProps> = ({
-  winner,
-  p1Name,
-  p2Name,
-  score1,
-  score2,
-  isTeam = false,
-  onClose
-}) => {
   useEffect(() => {
-    if (winner) {
-      sound.playFanfare();
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
+    sound.playFanfare();
+    if ((solo ? match.correct1 > 0 : !draw) && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      confetti({ particleCount: 70, spread: 65, origin: { y: 0.6 }, colors: ['#8edaff', '#a52655', '#fbf3f7'] });
     }
-  }, [winner]);
-
-  if (!winner) return null;
-
-  const isDraw = winner === 'Beraberlik';
+  }, [draw, match.correct1, solo]);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="bg-gradient-to-b from-[#202b5d] to-[#121832] border border-yellow-400/40 rounded-3xl p-6 w-full max-w-md text-center shadow-2xl space-y-4 animate-scaleUp">
-        <div className="w-20 h-20 mx-auto rounded-3xl bg-yellow-400/20 text-yellow-300 flex items-center justify-center text-4xl shadow-xl shadow-yellow-500/20 animate-bounce">
-          {isDraw ? '🤝' : '🏆'}
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4 backdrop-blur-sm" onKeyDown={event => { if (event.key === 'Escape') onClose(); }}>
+      <div role="dialog" aria-modal="true" aria-labelledby="match-result-title" className="league-panel max-h-[90vh] w-full max-w-xl space-y-4 overflow-y-auto">
+        <div className="league-scoreboard space-y-3 text-center">
+          <h2 id="match-result-title" className="flex items-center justify-center gap-2 text-xl font-black"><Trophy size={21} className="text-rose-200" aria-hidden="true" /> Maç Sonucu</h2>
+          <p className="league-score">{solo ? `${match.correct1} / ${match.questions.length}` : `${match.correct1} – ${match.correct2}`}</p>
+          <p className="break-words text-sm font-bold">{solo ? 'Gol' : `${match.p1} · ${match.p2}`}</p>
+          {!solo && <p className="text-sm font-bold text-sky-200">{draw ? 'Beraberlik · İki tarafa 1 puan' : `${winner} kazandı · 3 lig puanı`}</p>}
         </div>
-
-        <span className="px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 font-extrabold text-xs border border-cyan-500/30">
-          MAÇ TAMAMLANDI
-        </span>
-
-        <div>
-          <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-white to-cyan-300">
-            {isDraw ? 'Beraberlik!' : `Kazanan: ${winner}`}
-          </h2>
-          <p className="text-xs text-slate-300 mt-1">
-            {isDraw ? 'İki taraf da harika mücadele etti!' : `Tebrikler ${winner}! Şampiyonluğu kazandın! 🎉`}
-          </p>
-        </div>
-
-        {/* Score cards */}
-        <div className="grid grid-cols-2 gap-3 pt-2">
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
-            <b className="block text-2xl font-black text-cyan-400">{score1}</b>
-            <span className="text-[11px] text-slate-400 font-semibold">{p1Name}</span>
-          </div>
-          {p2Name && (
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-3">
-              <b className="block text-2xl font-black text-yellow-400">{score2}</b>
-              <span className="text-[11px] text-slate-400 font-semibold">{p2Name}</span>
-            </div>
-          )}
-        </div>
-
-        <button
-          onClick={onClose}
-          className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black text-xs shadow-lg hover:brightness-110 transition-all"
-        >
-          Tamam
-        </button>
+        <details>
+          <summary className="cursor-pointer font-bold">Cevapları ve Çözümleri İncele</summary>
+          <ol className="mt-3 space-y-2">
+            {match.questions.map((question, index) => {
+              const showAnswer = (answer: string | undefined, name: string) => (
+                <p className="mt-1 text-sm text-slate-200">{name} · {answer || 'Pas'}
+                  <span className={correctAnswer(question, answer || '') ? 'text-sky-200' : 'text-rose-200'}>
+                    {correctAnswer(question, answer || '') ? ' · Gol' : answer ? ' · Yanlış' : ''}
+                  </span>
+                </p>
+              );
+              return (
+                <li key={question.q}>
+                  <details className="rounded-xl border border-white/10 bg-black/15 p-3">
+                    <summary className="cursor-pointer text-sm font-bold">{index + 1}. soru · {question.subject}</summary>
+                    <p className="mt-2 text-sm">{question.q}</p><Diagram figure={question.figure} />
+                    {showAnswer(match.answers1[index], match.p1)}
+                    {!solo && showAnswer(match.answers2[index], match.p2)}
+                    <p className="mt-2 text-sm font-bold text-sky-200">Doğru cevap · {question.a}</p>
+                    <p className="mt-1 text-sm text-slate-200">{question.explanation}</p>
+                    {question.sourceUrl && <a href={question.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-sm text-cyan-200 underline">Uyarlama kaynağı · {question.source} ↗</a>}
+                  </details>
+                </li>
+              );
+            })}
+          </ol>
+        </details>
+        <button type="button" autoFocus className="league-primary w-full" onClick={onClose}>Maç Merkezine Dön</button>
       </div>
     </div>
   );
-};
+}

@@ -1,6 +1,6 @@
-import { SudokuPuzzle, KendokuPuzzle, ApartmanPuzzle, RebusPuzzle, KendokuCage } from '../types';
+import { SudokuPuzzle, KendokuPuzzle, ApartmanPuzzle, KendokuCage } from '../types';
 
-function shuffle<T>(array: T[]): T[] {
+function shuffle<T>(array: readonly T[]): T[] {
   const a = [...array];
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -55,21 +55,39 @@ function latin4(): number[][] {
 export function makeKendoku(): KendokuPuzzle {
   const sol = latin4();
   const cages: KendokuCage[] = [];
-  const used = new Set<string>();
-  const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  const unused = new Set(shuffle(Array.from({ length: 16 }, (_, index) => index)));
+  const coordinates = (index: number): [number, number] => [Math.floor(index / 4), index % 4];
 
-  for (let r = 0; r < 4; r++) {
-    for (let c = 0; c < 4; c++) {
-      if (used.has(`${r},${c}`)) continue;
-
-      let cells: [number, number][] = [[r, c]];
-      used.add(`${r},${c}`);
-      
-      const vals = cells.map(([cr, cc]) => sol[cr][cc]);
-      cages.push({ cells, op: '=', target: vals[0] });
+  for (const index of unused) {
+    unused.delete(index);
+    const [row, col] = coordinates(index);
+    const neighbors = shuffle([index - 4, index + 4, col > 0 ? index - 1 : -1, col < 3 ? index + 1 : -1]);
+    const partner = neighbors.find(cell => unused.has(cell));
+    if (partner === undefined) {
+      cages.push({ cells: [[row, col]], op: '=', target: sol[row][col] });
+      continue;
     }
+    unused.delete(partner);
+    const [otherRow, otherCol] = coordinates(partner);
+    const cells = [coordinates(index), coordinates(partner)].sort(([r1, c1], [r2, c2]) => r1 - r2 || c1 - c2);
+    const [a, b] = [sol[row][col], sol[otherRow][otherCol]];
+    const op = shuffle(['+', '−', '×'] as const)[0];
+    const target = { '+': a + b, '−': Math.abs(a - b), '×': a * b }[op];
+    cages.push({ cells, op, target });
   }
   return { sol, cages };
+}
+
+export function matchesCage(cage: KendokuCage, board: number[][]): boolean {
+  const values = cage.cells.map(([row, col]) => board[row][col]);
+  const [a, b] = values;
+  switch (cage.op) {
+    case '=': return a === cage.target;
+    case '+': return values.reduce((sum, value) => sum + value, 0) === cage.target;
+    case '×': return values.reduce((product, value) => product * value, 1) === cage.target;
+    case '−': return Math.abs(a - b) === cage.target;
+    case '÷': return Math.max(a, b) / Math.min(a, b) === cage.target;
+  }
 }
 
 /* =========================================================
@@ -119,34 +137,3 @@ export function makeApartman(): ApartmanPuzzle {
 
   return { sol, top, bottom, left, right };
 }
-
-/* =========================================================
-   4. RESFEBE (REBUS)
-========================================================= */
-export const rebusPool: RebusPuzzle[] = [
-  { display: 'C1', answer: 'CEBİR', source: 'MEB Zekâ Oyunları' },
-  { display: 'NNNNNN', answer: 'ALTINDIR', source: 'MEB Beceri Temelli' },
-  { display: 'EL + Di + ters EV + N', answer: 'ELDİVEN', source: 'MEB Zekâ Oyunları' },
-  { display: 'S + AYI', answer: 'SAYI', source: 'Toli Games' },
-  { display: 'H + AY + AT', answer: 'HAYAT', source: 'Toli Games' },
-  { display: 'TEF + L + 10', answer: 'TEFLON', source: 'Toli Games' },
-  { display: 'YEL DEĞİRMENİ + KOVA + 10', answer: 'YELKOVAN', source: 'Toli Games' },
-  { display: 'KAR TANESİ + AT + E', answer: 'KARATE', source: 'Toli Games' },
-  { display: 'NAL − N + EV', answer: 'ALEV', source: 'Toli Games' },
-  { display: 'M + AY + MUZ(−Z) + N', answer: 'MAYMUN', source: 'Toli Games' },
-  { display: 'ters AY + ters AT + K', answer: 'YATAK', source: 'Toli Games' },
-  { display: 'ÇAM(−M) + DIR', answer: 'ÇADIR', source: 'Toli Games' },
-  { display: 'KEK(−K) + DİŞ(−Ş)', answer: 'KEDİ', source: 'Toli Games' },
-  { display: 'KÂĞIT + I + T', answer: 'KAĞIT', source: 'Zekâ Kulübü' },
-  { display: '2 + Lİ + K', answer: 'İKİLİK', source: 'Zekâ Kulübü' },
-  { display: 'KAP + A + N', answer: 'KAPAN', source: 'Resfebe Dünyası' },
-  { display: 'BAŞ + A + R + I', answer: 'BAŞARI', source: 'Resfebe Dünyası' },
-  { display: 'D + OK + TOR', answer: 'DOKTOR', source: 'Resfebe Dünyası' },
-  { display: 'M + A + T + E + M + A + T + İ + K', answer: 'MATEMATİK', source: 'Resfebe Dünyası' },
-  { display: 'S + O + R + U', answer: 'SORU', source: 'Resfebe Dünyası' }
-];
-
-export function makeRebus(): RebusPuzzle {
-  return rebusPool[Math.floor(Math.random() * rebusPool.length)];
-}
-

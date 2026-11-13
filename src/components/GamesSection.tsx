@@ -1,7 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Puzzle, Clock, Lightbulb, RotateCcw, CheckCircle2, Sparkles, HelpCircle } from 'lucide-react';
-import { GameType, SudokuPuzzle, KendokuPuzzle, ApartmanPuzzle, RebusPuzzle } from '../types';
-import { makeSudoku, makeKendoku, makeApartman, makeRebus, visible } from '../utils/gameEngines';
+import { GameType, SudokuPuzzle, KendokuPuzzle, ApartmanPuzzle } from '../types';
+import { makeSudoku, makeKendoku, makeApartman, visible, matchesCage } from '../utils/gameEngines';
+import { RebusBoard } from './RebusBoard';
+import { explainRebus, rebusPool, type RebusPuzzle } from '../utils/rebusPuzzles';
+import { shuffle } from '../utils/matchQuestions';
+import { requestCoach } from '../utils/coach';
 import { sound } from '../utils/sound';
 
 interface GamesSectionProps {
@@ -10,6 +14,8 @@ interface GamesSectionProps {
 
 export const GamesSection: React.FC<GamesSectionProps> = ({ onGameFinish }) => {
   const [activeGame, setActiveGame] = useState<GameType | null>(null);
+
+  const completed = useRef(false);
 
   // Timer
   const [seconds, setSeconds] = useState<number>(0);
@@ -27,6 +33,7 @@ export const GamesSection: React.FC<GamesSectionProps> = ({ onGameFinish }) => {
   const [apartmanInputs, setApartmanInputs] = useState<number[][]>([]);
 
   const [rebusData, setRebusData] = useState<RebusPuzzle | null>(null);
+  const remainingRebuses = useRef<RebusPuzzle[]>([]);
   const [rebusAnswerInput, setRebusAnswerInput] = useState<string>('');
 
   // Feedback & Hints
@@ -45,6 +52,7 @@ export const GamesSection: React.FC<GamesSectionProps> = ({ onGameFinish }) => {
 
   const startNewPuzzle = (type: GameType) => {
     sound.playClick();
+    completed.current = false;
     setActiveGame(type);
     setSeconds(0);
     setTimerActive(true);
@@ -58,14 +66,20 @@ export const GamesSection: React.FC<GamesSectionProps> = ({ onGameFinish }) => {
     } else if (type === 'kendoku') {
       const p = makeKendoku();
       setKendokuData(p);
-      setKendokuInputs(Array.from({ length: 6 }, () => Array(6).fill(0)));
+      setKendokuInputs(p.sol.map(row => row.map(() => 0)));
     } else if (type === 'apartman') {
       const p = makeApartman();
       setApartmanData(p);
       setApartmanInputs(Array.from({ length: 5 }, () => Array(5).fill(0)));
     } else if (type === 'resfebe') {
-      const p = makeRebus();
-      setRebusData(p);
+      if (remainingRebuses.current.length === 0) {
+        const next = shuffle(rebusPool);
+        if (next.at(-1)?.answer === rebusData?.answer) {
+          [next[0], next[next.length - 1]] = [next[next.length - 1], next[0]];
+        }
+        remainingRebuses.current = next;
+      }
+      setRebusData(remainingRebuses.current.pop()!);
       setRebusAnswerInput('');
     }
   };
@@ -90,8 +104,8 @@ export const GamesSection: React.FC<GamesSectionProps> = ({ onGameFinish }) => {
 
   /* Kendoku cell input change */
   const handleKendokuChange = (r: number, c: number, valStr: string) => {
-    const num = parseInt(valStr.replace(/\D/g, ''), 10) || 0;
-    const validNum = num > 6 ? 6 : num;
+    if (!/^[1-4]?$/.test(valStr)) return;
+    const validNum = Number(valStr);
     const copy = kendokuInputs.map(row => [...row]);
     copy[r][c] = validNum;
     setKendokuInputs(copy);
@@ -108,22 +122,27 @@ export const GamesSection: React.FC<GamesSectionProps> = ({ onGameFinish }) => {
 
   /* Check Puzzle Solved */
   const checkAnswer = () => {
+    if (completed.current) return;
     if (activeGame === 'sudoku') {
       if (!sudokuData) return;
-      for (let r = 0; r < 9; r++) {
-        for (let c = 0; c < 9; c++) {
-          if (sudokuInputs[r][c] === 0) {
-            sound.playError();
-            setFeedback({ type: 'no', text: 'Eksik kalmış hücreler var. Hepsini doldurun!' });
-            return;
-          }
-          if (sudokuInputs[r][c] !== sudokuData.sol[r][c]) {
-            sound.playError();
-            setFeedback({ type: 'no', text: 'Hatalı sayılar var. Satır ve sütunları kontrol edin!' });
-            return;
-          }
-        }
+      if (sudokuInputs.some(row => row.includes(0))) {
+        sound.playError();
+        setFeedback({ type: 'no', text: 'Eksik hücreler var. Tümünü doldurun.' });
+        return;
       }
+      const groups = [...sudokuInputs];
+      for (let index = 0; index < 9; index++) {
+        groups.push(sudokuInputs.map(row => row[index]));
+        const top = Math.floor(index / 3) * 3;
+        const left = index % 3 * 3;
+        groups.push(sudokuInputs.slice(top, top + 3).flatMap(row => row.slice(left, left + 3)));
+      }
+      if (groups.some(group => new Set(group).size !== 9)) {
+        sound.playError();
+        setFeedback({ type: 'no', text: 'Bir satır, sütun veya 3×3 bölgede tekrar eden sayı var.' });
+        return;
+      }
+      completed.current = true;
       setTimerActive(false);
       sound.playSuccess();
       setFeedback({ type: 'ok', text: '🎉 Mükemmel! Sudoku bulmacasını doğru çözdünüz! (+100 Puan)' });
@@ -153,7 +172,12 @@ export const GamesSection: React.FC<GamesSectionProps> = ({ onGameFinish }) => {
           return;
         }
       }
-      // Simplified cage check for 4x4
+      if (kendokuData.cages.some(cage => !matchesCage(cage, kendokuInputs))) {
+        sound.playError();
+        setFeedback({ type: 'no', text: 'Bir işlem bölgesindeki sonuç hedef sayı ile uyuşmuyor.' });
+        return;
+      }
+      completed.current = true;
       setTimerActive(false);
       sound.playSuccess();
       setFeedback({ type: 'ok', text: '🎉 Tebrikler! Kendoku bulmacası tamamlandı! (+100 Puan)' });
@@ -198,18 +222,19 @@ export const GamesSection: React.FC<GamesSectionProps> = ({ onGameFinish }) => {
         }
       }
 
+      completed.current = true;
       setTimerActive(false);
       sound.playSuccess();
       setFeedback({ type: 'ok', text: '🎉 Harika! Apartman bulmacasını çözdünüz! (+100 Puan)' });
       onGameFinish('apartman', true, seconds);
     } else if (activeGame === 'resfebe') {
       if (!rebusData) return;
-      const userNorm = rebusAnswerInput.trim().toLowerCase().replace(/\s+/g, '');
-      const ansNorm = rebusData.answer.trim().toLowerCase().replace(/\s+/g, '');
-      if (userNorm === ansNorm) {
+      const normalize = (text: string) => text.normalize('NFC').trim().toLocaleUpperCase('tr-TR').replace(/\s+/g, '');
+      if (normalize(rebusAnswerInput) === normalize(rebusData.answer)) {
+        completed.current = true;
         setTimerActive(false);
         sound.playSuccess();
-        setFeedback({ type: 'ok', text: '🎉 Doğru cevap! Resfebe çözüldü! (+100 Puan)' });
+        setFeedback({ type: 'ok', text: `Doğru! ${explainRebus(rebusData)} (+100 puan)` });
         onGameFinish('resfebe', true, seconds);
       } else {
         sound.playError();
@@ -220,23 +245,31 @@ export const GamesSection: React.FC<GamesSectionProps> = ({ onGameFinish }) => {
 
   /* Get AI Hint */
   const handleAIHint = async () => {
+    if (activeGame === 'resfebe' && rebusData) {
+      const letterCount = [...rebusData.answer.replaceAll(' ', '')].length;
+      setFeedback({ type: 'hint', text: `Aradığın cevap ${letterCount} harfli. İşlemleri ilgili görsel üzerinde yap, sonra parçaları soldan sağa birleştir.` });
+      return;
+    }
     setAiHintLoading(true);
     sound.playClick();
     try {
-      const res = await fetch('/api/ai/hint', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          gameType: activeGame,
-          puzzleState: activeGame === 'resfebe' ? rebusData : activeGame === 'sudoku' ? '9x9 Sudoku' : 'Mantık Oyunu',
-        }),
+      const data = await requestCoach('hint', {
+        gameType: activeGame,
+        puzzleState: activeGame === 'sudoku' ? '9×9 Sudoku' : 'Mantık oyunu',
       });
-      const data = await res.json();
-      if (data.text) {
+      if (!data.text) throw new Error('İpucu alınamadı');
+      if (!completed.current) {
         setFeedback({ type: 'hint', text: `💡 AI İpucu: ${data.text}` });
       }
     } catch {
-      setFeedback({ type: 'hint', text: '💡 Sabırla satır ve sütundaki sayıların tekrar etmediğinden emin olun.' });
+      const hints = {
+        sudoku: 'Her satır, sütun ve 3×3 kutuda 1–9 rakamları birer kez yer alır.',
+        kendoku: 'Her satır ve sütunda 1–4 birer kez yer alır. Önce tek hücreli bölgeleri doldur.',
+        apartman: 'Bir binanın arkasında kalan daha kısa binalar görünmez. Önce 1 ve 5 ipuçlarına bak.',
+        resfebe: 'Sembollerin adını sesli düşün. Eklenen ve çıkarılan harflere dikkat et.',
+        blitz: 'Önce sorudaki işlemi ve istenen sonucu belirle.',
+      };
+      if (activeGame && !completed.current) setFeedback({ type: 'hint', text: hints[activeGame] });
     } finally {
       setAiHintLoading(false);
     }
@@ -293,7 +326,7 @@ export const GamesSection: React.FC<GamesSectionProps> = ({ onGameFinish }) => {
           </div>
           <div>
             <h3 className="text-sm font-extrabold text-white">Kendoku</h3>
-            <p className="text-[11px] text-slate-400">6×6 İşlem Bölgeleri</p>
+            <p className="text-[11px] text-slate-400">4×4 İşlem Bölgeleri</p>
           </div>
         </button>
 
@@ -362,7 +395,8 @@ export const GamesSection: React.FC<GamesSectionProps> = ({ onGameFinish }) => {
                         type="text"
                         inputMode="numeric"
                         maxLength={1}
-                        readOnly={isOriginal}
+                        readOnly={isOriginal || !timerActive}
+                        aria-label={`Satır ${r + 1}, sütun ${c + 1}`}
                         value={cellVal === 0 ? '' : cellVal}
                         onFocus={() => setSudokuSelectedCell([r, c])}
                         onChange={e => handleSudokuChange(r, c, e.target.value)}
@@ -393,17 +427,22 @@ export const GamesSection: React.FC<GamesSectionProps> = ({ onGameFinish }) => {
           {/* KENDOKU BOARD */}
           {activeGame === 'kendoku' && kendokuData && (
             <div className="space-y-4">
-              <div className="w-full max-w-sm mx-auto grid grid-cols-4 gap-[2px] bg-[#485174] p-[2px] rounded-lg shadow-xl">
+              <div className="w-full max-w-sm mx-auto grid grid-cols-4 bg-[#121936] p-[2px] rounded-lg shadow-xl">
                 {kendokuInputs.map((row, r) =>
                   row.map((cellVal, c) => {
                     const cage = kendokuData.cages.find(g => g.cells.some(([cr, cc]) => cr === r && cc === c));
                     const isFirstInCage = cage?.cells[0][0] === r && cage?.cells[0][1] === c;
+                    const sameCage = (row: number, col: number) =>
+                      cage?.cells.some(([cellRow, cellCol]) => cellRow === row && cellCol === col);
+                    const border = (row: number, col: number) => sameCage(row, col) ? 'transparent' : '#a89ac5';
 
                     return (
-                      <div key={`${r}-${c}`} className="relative aspect-square bg-[#121936] flex items-center justify-center">
+                      <div key={`${r}-${c}`}
+                        style={{ borderStyle: 'solid', borderWidth: 1, borderColor: [border(r - 1, c), border(r, c + 1), border(r + 1, c), border(r, c - 1)].join(' ') }}
+                        className="relative aspect-square bg-[#121936] flex items-center justify-center">
                         {isFirstInCage && (
                           <span className="absolute top-1 left-1 text-[10px] font-black text-yellow-300 leading-none">
-                            {cage!.target}
+                            {cage!.target}{cage!.op === '=' ? '' : cage!.op}
                           </span>
                         )}
                         <input
@@ -411,6 +450,8 @@ export const GamesSection: React.FC<GamesSectionProps> = ({ onGameFinish }) => {
                           inputMode="numeric"
                           maxLength={1}
                           value={cellVal === 0 ? '' : cellVal}
+                          readOnly={!timerActive}
+                          aria-label={`Satır ${r + 1}, sütun ${c + 1}`}
                           onChange={e => handleKendokuChange(r, c, e.target.value)}
                           className="w-full h-full text-center bg-transparent text-white font-black text-xl outline-none focus:bg-cyan-900/30 kendoku-cell"
                         />
@@ -462,17 +503,17 @@ export const GamesSection: React.FC<GamesSectionProps> = ({ onGameFinish }) => {
           {/* RESFEBE BOARD */}
           {activeGame === 'resfebe' && rebusData && (
             <div className="space-y-4 text-center">
-              <div className="min-h-[160px] bg-[#0d1430] border border-white/10 rounded-2xl p-6 flex flex-col items-center justify-center space-y-2 shadow-inner">
-                <div className="text-3xl sm:text-4xl font-black text-white tracking-widest leading-relaxed">
-                  {rebusData.display}
-                </div>
-                <span className="text-[11px] text-slate-400 italic">Kaynak: {rebusData.source}</span>
-              </div>
+              <RebusBoard puzzle={rebusData} />
 
               <div className="max-w-xs mx-auto space-y-1">
-                <label className="block text-xs font-semibold text-slate-300 text-left">Kelime / Yanıtınız:</label>
+                <label htmlFor="rebus-answer" className="block text-xs font-semibold text-slate-300 text-left">Cevabın</label>
                 <input
                   type="text"
+                  id="rebus-answer"
+                  autoComplete="off"
+                  spellCheck={false}
+                  readOnly={!timerActive}
+                  onKeyDown={event => { if (event.key === 'Enter' && timerActive) checkAnswer(); }}
                   value={rebusAnswerInput}
                   onChange={e => setRebusAnswerInput(e.target.value)}
                   placeholder="Cevabınızı yazın..."
@@ -501,13 +542,15 @@ export const GamesSection: React.FC<GamesSectionProps> = ({ onGameFinish }) => {
           <div className="flex flex-wrap gap-2 pt-2">
             <button
               onClick={checkAnswer}
+              disabled={!timerActive}
+              aria-disabled={!timerActive}
               className="flex-1 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-600 text-slate-950 font-black text-xs shadow-lg shadow-amber-500/20 hover:brightness-110 active:scale-95 transition-all"
             >
               ✓ Cevabı Kontrol Et
             </button>
             <button
               onClick={handleAIHint}
-              disabled={aiHintLoading}
+              disabled={aiHintLoading || !timerActive}
               className="flex items-center gap-1.5 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white font-bold text-xs hover:bg-white/10"
             >
               <Sparkles className="w-4 h-4 text-cyan-400" />

@@ -1,10 +1,12 @@
 import React from 'react';
-import { Volume2, VolumeX, Sparkles, Trophy, School, Puzzle, Calculator, Lightbulb, Star, BarChart3, Home } from 'lucide-react';
+import { Volume2, VolumeX, Sparkles, Trophy, School, Puzzle, Calculator, Lightbulb, Star, BarChart3, Home, UserRound } from 'lucide-react';
 import { AppState } from '../types';
+import { crests, type Crest } from '../utils/student';
 import { sound } from '../utils/sound';
 
 interface HeaderProps {
   state: AppState;
+  crest?: Crest;
   activeSection: string;
   setActiveSection: (sec: string) => void;
   toggleSound: () => void;
@@ -13,6 +15,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   state,
+  crest = 'ts',
   activeSection,
   setActiveSection,
   toggleSound,
@@ -20,11 +23,11 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const navItems = [
     { id: 'home', label: 'Ana Sayfa', icon: Home },
+    { id: 'profile', label: 'Profilim', icon: UserRound },
+    { id: 'training', label: 'Antrenman', icon: Calculator },
     { id: 'league', label: '🏆 Pro Lig', icon: Trophy },
     { id: 'classes', label: '🏫 Sınıflarım', icon: School },
     { id: 'games', label: '🧩 Zekâ Oyunları', icon: Puzzle },
-    { id: 'math', label: '🔢 Matematik', icon: Calculator },
-    { id: 'why', label: '💡 Neden Böyle?', icon: Lightbulb },
     { id: 'weekly', label: '⭐ Haftanın Sorusu', icon: Star },
     { id: 'reports', label: '📊 Raporlar', icon: BarChart3 },
   ];
@@ -36,32 +39,22 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-30 bg-[#0b1128]/95 backdrop-blur-md border-b border-white/10 px-4 py-3">
+    <header className="sticky top-0 z-30 league-header backdrop-blur-md px-4 py-3">
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-wrap items-center justify-between gap-3">
           {/* Logo & Brand */}
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => handleNavClick('home')}>
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-600 to-cyan-400 flex items-center justify-center text-2xl shadow-lg shadow-purple-500/20 transform hover:scale-105 transition-transform">
-              🧠
-            </div>
-            <div>
-              <h1 className="text-xl font-extrabold tracking-tight text-white flex items-center gap-2">
-                Zekâ Akademisi
-                <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-semibold border border-cyan-500/30">
-                  PRO LİG
-                </span>
-              </h1>
-              <p className="text-xs text-slate-400 font-medium">Matematik • Mantık • Zekâ Oyunları</p>
-            </div>
-          </div>
+          <button type="button" className="flex items-center gap-3 text-left" onClick={() => handleNavClick('home')} aria-label="Zekâ Pro Ligim ana sayfası">
+            <span className="league-brand"><img className="size-8 object-contain" src={`/crests/${crest}.png`} alt={crests[crest]} /></span>
+            <span className="text-lg font-black tracking-tight text-white">Zekâ Pro Ligim</span>
+          </button>
 
           {/* Quick Actions & Sound Toggle */}
           <div className="flex items-center gap-2">
             <button
               onClick={openAICoach}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold text-xs shadow-md shadow-purple-600/30 hover:brightness-110 active:scale-95 transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/15 bg-white/5 text-white font-bold text-xs hover:brightness-110 active:scale-95 transition-all"
             >
-              <Sparkles className="w-3.5 h-3.5 text-yellow-300 animate-spin" style={{ animationDuration: '4s' }} />
+              <Sparkles className="w-3.5 h-3.5 text-sky-200" />
               AI Zekâ Koçu
             </button>
             <button
@@ -97,10 +90,11 @@ export const Header: React.FC<HeaderProps> = ({
             return (
               <button
                 key={item.id}
+                aria-current={isActive ? 'page' : undefined}
                 onClick={() => handleNavClick(item.id)}
-                className={`flex-none px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${
+                className={`league-nav flex-none px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${
                   isActive
-                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-purple-400/50 shadow-md shadow-purple-600/30'
+                    ? 'font-extrabold'
                     : 'bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:text-white'
                 }`}
               >

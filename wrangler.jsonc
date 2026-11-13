@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "zeka-pro-ligim",
+  "main": "dist/cloudflare/worker.mjs",
+  "compatibility_date": "2026-11-13",
+  "workers_dev": true,
+  "preview_urls": false,
+  "build": { "command": "npm run build:cloudflare" },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "zeka-pro-ligim",
+      "database_id": "CLOUDFLARE_D1_DATABASE_ID",
+      "migrations_dir": "drizzle"
+    }
+  ]
+}

@@ -1,33 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useEffectEvent, useRef } from 'react';
 import { Header } from './components/Header';
+import { TrainingSection } from './components/TrainingSection';
 import { HomeSection } from './components/HomeSection';
 import { ClassesSection } from './components/ClassesSection';
+import { getDuelInviteCode } from './components/OnlineDuel';
 import { LeagueSection } from './components/LeagueSection';
 import { GamesSection } from './components/GamesSection';
-import { MathSection } from './components/MathSection';
-import { WhySection } from './components/WhySection';
 import { WeeklySection } from './components/WeeklySection';
 import { ReportsSection } from './components/ReportsSection';
 import { WinnerModal } from './components/WinnerModal';
 import { AICoachModal } from './components/AICoachModal';
 
-import { AppState, StudentClass, MatchState, Fixture, Question, GameType, Team, MatchHistoryRecord } from './types';
-import { allQuestions } from './utils/questionsData';
+import { AppState, StudentClass, MatchState, MatchSetup, Fixture, GameType, ClassTeam, MatchHistoryRecord } from './types';
+import { competitionQuestions, correctAnswer, defaults, validSettings } from './utils/competition';
+import { studentApi, studentAttempt, type Account, type Profile, type StudentResult } from './utils/student';
+import { StudentProfile } from './components/StudentProfile';
 import { sound } from './utils/sound';
 
 const LS_KEY = 'zekaAkademisi_PRO_2026';
 
 function uid(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-}
-
-function shuffle<T>(array: T[]): T[] {
-  const a = [...array];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
 }
 
 const defaultInitialClasses: StudentClass[] = [
@@ -72,6 +65,7 @@ const defaultState: AppState = {
   soundEnabled: true,
   classes: defaultInitialClasses,
   fixtures: [],
+  teams: [],
   matches: [],
   history: [],
   games: {
@@ -91,23 +85,82 @@ export default function App() {
         return {
           ...defaultState,
           ...parsed,
-          classes: parsed.classes?.length > 0 ? parsed.classes : defaultInitialClasses
+          classes: Array.isArray(parsed.classes) ? parsed.classes : defaultInitialClasses,
+          teams: Array.isArray(parsed.teams) ? parsed.teams : []
         };
       }
     } catch {}
     return defaultState;
   });
 
-  const [activeSection, setActiveSection] = useState<string>('home');
+  const [activeSection, setActiveSection] = useState<string>(() => getDuelInviteCode() ? 'league' : new URLSearchParams(location.search).has('profil') ? 'profile' : 'home');
   const [activeMatch, setActiveMatch] = useState<MatchState | null>(null);
-  const [winnerData, setWinnerData] = useState<{
-    winner: string;
-    p1: string;
-    p2: string;
-    s1: number;
-    s2: number;
-    isTeam?: boolean;
-  } | null>(null);
+  const [winnerData, setWinnerData] = useState<MatchState | null>(null);
+  const [leagueMode, setLeagueMode] = useState<MatchSetup['mode']>(() => getDuelInviteCode() ? 'duel' : 'solo');
+
+  const [account, setAccount] = useState<Account>();
+  const [accountError, setAccountError] = useState('');
+  const [syncError, setSyncError] = useState(false);
+  const recorded = useRef('');
+  const drafts = useRef<[string, string]>(['', '']);
+  const matchOwner = useRef<string | undefined>(undefined);
+  const pending = useRef(new Map<string, Map<string, StudentResult>>());
+
+  const flushResults = async (accountKey: string) => {
+    const queue = pending.current.get(accountKey);
+    if (!queue?.size) return;
+    await Promise.all([...queue.values()].map(async result => {
+      try {
+        await studentApi('/result', result, accountKey);
+        queue.delete(result.id);
+      } catch {}
+    }));
+    setSyncError(queue.size > 0);
+    try {
+      if (queue.size) localStorage.setItem('zeka-pending-' + accountKey, JSON.stringify([...queue.values()]));
+      else localStorage.removeItem('zeka-pending-' + accountKey);
+    } catch {}
+  };
+
+  const loadAccount = async () => {
+    try {
+      setAccountError('');
+      const current = await studentApi<Account>();
+      const queue = new Map<string, StudentResult>();
+      try {
+        const saved: StudentResult[] = JSON.parse(localStorage.getItem('zeka-pending-' + current.accountKey) || '[]');
+        for (const result of saved) queue.set(result.id, result);
+      } catch {}
+      pending.current.set(current.accountKey, queue);
+      const unsaved = [...queue.values()].filter(result => !current.results.some(item => item.id === result.id));
+      setAccount({ ...current, results: [...unsaved, ...current.results] });
+      void flushResults(current.accountKey);
+    } catch (error) { setAccountError(error instanceof Error ? error.message : '503'); }
+  };
+  useEffect(() => { void loadAccount(); }, []);
+  const reconnect = useEffectEvent(() => { if (account) void flushResults(account.accountKey); });
+  useEffect(() => {
+    const retry = () => reconnect();
+    window.addEventListener('online', retry);
+    return () => window.removeEventListener('online', retry);
+  }, []);
+  const recordResult = (result: StudentResult) => {
+    if (!account?.profile) return;
+    const { accountKey } = account;
+    const queue = pending.current.get(accountKey);
+    if (!queue) return;
+    queue.set(result.id, result);
+    try { localStorage.setItem('zeka-pending-' + accountKey, JSON.stringify([...queue.values()])); } catch {}
+    setAccount(current => current?.accountKey === accountKey && !current.results.some(item => item.id === result.id)
+      ? { ...current, results: [result, ...current.results] } : current);
+    void flushResults(accountKey);
+  };
+
+  const openMatchSetup = (mode: MatchSetup['mode']) => {
+    setLeagueMode(mode);
+    setActiveSection('league');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
 
   const [aiCoachOpen, setAiCoachOpen] = useState<boolean>(false);
 
@@ -157,12 +210,15 @@ export default function App() {
   };
 
   const handleEditStudents = (classId: string, names: string[]) => {
+    const students = [...new Set(names)];
+    const allowed = new Set(students);
     setState(prev => ({
       ...prev,
-      classes: prev.classes.map(c => {
-        if (c.id !== classId) return c;
-        return { ...c, students: Array.from(new Set(names)) };
-      })
+      classes: prev.classes.map(group => group.id === classId ? { ...group, students } : group),
+      teams: prev.teams.map(team => team.classId === classId
+        ? { ...team, members: team.members.filter(member => allowed.has(member)) } : team),
+      fixtures: prev.fixtures.filter(fixture => fixture.classId !== classId || fixture.status === 'Tamamlandı' ||
+        fixture.mode === 'team' || (allowed.has(fixture.p1) && allowed.has(fixture.p2))),
     }));
   };
 
@@ -170,144 +226,153 @@ export default function App() {
     setState(prev => ({
       ...prev,
       classes: prev.classes.filter(c => c.id !== classId),
+      teams: prev.teams.filter(team => team.classId !== classId),
       fixtures: prev.fixtures.filter(f => f.classId !== classId)
     }));
     sound.playClick();
   };
 
-  /* Fixtures Handler */
-  const handleMakeFixture = (classId: string) => {
-    const targetClass = state.classes.find(c => c.id === classId);
-    if (!targetClass || targetClass.students.length < 2) {
-      alert('Fikstür için en az 2 öğrenci gerekli.');
-      return;
+  const handleSaveTeam = (team: Omit<ClassTeam, 'id'> & { id?: string }) => {
+    const group = state.classes.find(item => item.id === team.classId);
+    const name = team.name.trim();
+    if (!group || !name || !team.members.length || !team.members.every(member => group.students.includes(member))) {
+      return 'Takım adı yaz ve bu sınıftan en az bir öğrenci seç.';
     }
+    const peers = state.teams.filter(item => item.classId === team.classId && item.id !== team.id);
+    if (peers.some(item => item.name.toLocaleLowerCase('tr') === name.toLocaleLowerCase('tr'))) {
+      return 'Bu takım adı sınıfta kullanılıyor.';
+    }
+    if (peers.some(item => item.members.some(member => team.members.includes(member)))) {
+      return 'Bir öğrenci aynı sınıfta yalnızca bir takımda yer alabilir.';
+    }
+    const updated = { ...team, name, id: team.id ?? uid() };
+    setState(prev => ({
+      ...prev,
+      teams: [...prev.teams.filter(item => item.id !== updated.id), updated],
+    }));
+    return '';
+  };
 
-    const existingPairs = state.fixtures.filter(f => f.classId === classId);
-    const newPairs: Fixture[] = [];
+  const handleDeleteTeam = (id: string) => {
+    setState(prev => ({
+      ...prev,
+      teams: prev.teams.filter(team => team.id !== id),
+      fixtures: prev.fixtures.filter(fixture => fixture.status === 'Tamamlandı' || !fixture.teamIds?.includes(id)),
+    }));
+  };
 
-    for (let i = 0; i < targetClass.students.length; i++) {
-      for (let j = i + 1; j < targetClass.students.length; j++) {
-        const a = targetClass.students[i];
-        const b = targetClass.students[j];
-        if (!existingPairs.some(f => (f.p1 === a && f.p2 === b) || (f.p1 === b && f.p2 === a))) {
-          newPairs.push({
-            id: uid(),
-            classId,
-            p1: a,
-            p2: b,
-            status: 'Bekliyor',
-            result: null
-          });
-        }
+  const handleMakeFixture = (classId: string, mode: 'duel' | 'team' = 'duel') => {
+    const group = state.classes.find(item => item.id === classId);
+    if (!group) return 'Önce bir sınıf seç.';
+    const participants = mode === 'team'
+      ? state.teams.filter(team => team.classId === classId && team.members.length)
+      : group.students.map(name => ({ name, id: name }));
+    if (participants.length < 2) return mode === 'team' ? 'Fikstür için en az iki kadrolu takım gerekiyor.' : 'Fikstür için en az iki öğrenci gerekiyor.';
+
+    const existing = state.fixtures.filter(fixture => fixture.classId === classId && (fixture.mode ?? 'duel') === mode);
+    const newFixtures: Fixture[] = [];
+    participants.forEach((home, index) => {
+      for (const away of participants.slice(index + 1)) {
+        const recorded = existing.some(fixture => {
+          const [a, b] = fixture.teamIds ?? [fixture.p1, fixture.p2];
+          return (a === home.id && b === away.id) || (b === home.id && a === away.id);
+        });
+        if (!recorded) newFixtures.push({
+          id: uid(), classId, p1: home.name, p2: away.name, mode, status: 'Bekliyor', result: null,
+          teamIds: mode === 'team' ? [home.id, away.id] : undefined,
+        });
       }
-    }
-
-    if (newPairs.length === 0) {
-      alert('Tüm öğrenciler zaten birbirleriyle eşleşmiş durumda.');
-      return;
-    }
-
-    setState(prev => ({ ...prev, fixtures: [...prev.fixtures, ...newPairs] }));
-    sound.playSuccess();
-    alert(`${newPairs.length} yeni karşılaşma fikstüre eklendi.`);
-  };
-
-  /* Match Logic Handlers */
-  const pickMatchQuestions = (classId: string): Question[] => {
-    const targetClass = state.classes.find(c => c.id === classId);
-    const matchGrade = targetClass?.grade;
-    let pool = matchGrade ? allQuestions.filter(q => String(q.grade) === String(matchGrade)) : allQuestions;
-    if (pool.length < 10) pool = allQuestions;
-
-    const easy = shuffle(pool.filter(q => q.difficulty === 'kolay')).slice(0, 3);
-    const med = shuffle(pool.filter(q => q.difficulty === 'orta')).slice(0, 3);
-    const hard = shuffle(pool.filter(q => q.difficulty === 'zor')).slice(0, 4);
-
-    return shuffle([...easy, ...med, ...hard]);
-  };
-
-  const handleStartMatch = (
-    mode: 'duel' | 'team' | 'solo',
-    classId: string,
-    p1: string,
-    p2: string,
-    team1?: Team,
-    team2?: Team
-  ) => {
-    const questions = pickMatchQuestions(classId);
-    setActiveMatch({
-      id: uid(),
-      classId,
-      p1,
-      p2,
-      mode,
-      team1,
-      team2,
-      index: 0,
-      questions,
-      answers1: [],
-      answers2: [],
-      correct1: 0,
-      correct2: 0,
-      start: Date.now()
     });
+    if (!newFixtures.length) return 'Tüm eşleşmeler fikstürde yer alıyor.';
+    setState(prev => ({ ...prev, fixtures: [...prev.fixtures, ...newFixtures] }));
+    sound.playSuccess();
+    return `${newFixtures.length} maç fikstüre eklendi.`;
   };
 
-  const handleQuickMatch = () => {
-    if (state.classes.length === 0) {
-      setActiveSection('classes');
-      alert('Lütfen önce bir sınıf ekleyin.');
-      return;
+  const handleStartMatch = (setup: MatchSetup) => {
+    if (activeMatch && !confirm('Devam eden maç kapatılsın mı?')) return;
+    const group = setup.mode === 'solo' ? undefined : state.classes.find(item => item.id === setup.classId);
+    if (setup.mode !== 'solo' && !group) return 'Önce bir sınıf seç.';
+    if (setup.mode === 'solo' && !['5', '6', '7', '8'].includes(setup.grade)) return 'Geçerli bir sınıf düzeyi seç.';
+
+    const team1 = setup.mode === 'team' ? state.teams.find(team => team.id === setup.team1Id && team.classId === group?.id) : undefined;
+    const team2 = setup.mode === 'team' ? state.teams.find(team => team.id === setup.team2Id && team.classId === group?.id) : undefined;
+    if (setup.mode === 'team' && (!team1?.members.length || !team2?.members.length || team1.id === team2.id)) {
+      return 'Maç için kadrosu olan iki farklı takım seç.';
     }
-    const c = state.classes[0];
-    if (c.students.length < 2) {
-      setActiveSection('classes');
-      alert('Sınıfta en az 2 öğrenci olmalıdır.');
-      return;
+    if (setup.mode === 'duel' && (setup.p1 === setup.p2 || !group?.students.includes(setup.p1) || !group.students.includes(setup.p2))) {
+      return 'Aynı sınıftan iki farklı öğrenci seç.';
     }
-    const shuffled = shuffle(c.students);
-    setActiveSection('league');
-    handleStartMatch('duel', c.id, shuffled[0], shuffled[1]);
+    const settings = setup.settings ?? defaults;
+    if (!validSettings(settings)) return 'Geçerli maç ayarları seç.';
+    const questions = competitionQuestions(setup.mode === 'solo' ? setup.grade : group!.grade, setup.mode === 'team' ? 10 : 5, settings);
+    if (!questions.length) return 'Bu ders için uygun soru bulunamadı.';
+    drafts.current = ['', ''];
+    matchOwner.current = account?.profile ? account.accountKey : undefined;
+    const p1 = setup.mode === 'solo' ? 'Sen' : setup.mode === 'duel' ? setup.p1 : team1!.name;
+    const p2 = setup.mode === 'solo' ? '' : setup.mode === 'duel' ? setup.p2 : team2!.name;
+    setActiveMatch({
+      id: uid(), classId: group?.id ?? '', fixtureId: setup.mode === 'solo' ? undefined : setup.fixtureId,
+      mode: setup.mode, p1, p2, team1, team2, questions, index: 0, settings,
+      deadline: settings.seconds ? Date.now() + settings.seconds * 1000 : undefined,
+      answers1: [], answers2: [], correct1: 0, correct2: 0, start: Date.now(),
+    });
+    sound.playClick();
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    return '';
   };
 
-  const handleSubmitAnswer = (ans1: string, ans2?: string) => {
+  const handleSubmitAnswer = (home: string, away = '') => {
     if (!activeMatch) return;
-    const q = activeMatch.questions[activeMatch.index];
-    const norm = (str: string) => str.trim().toLowerCase().replace(/\s+/g, '');
-
-    const c1 = norm(ans1) === norm(q.a);
-    const c2 = activeMatch.mode === 'duel' && ans2 ? norm(ans2) === norm(q.a) : false;
-
-    const updated1 = c1 ? activeMatch.correct1 + 1 : activeMatch.correct1;
-    const updated2 = c2 ? activeMatch.correct2 + 1 : activeMatch.correct2;
-
-    const nextIndex = activeMatch.index + 1;
-
-    if (nextIndex >= activeMatch.questions.length) {
-      // Finish match
-      finishMatch({
-        ...activeMatch,
-        correct1: updated1,
-        correct2: updated2,
-        answers1: [...activeMatch.answers1, ans1],
-        answers2: ans2 ? [...activeMatch.answers2, ans2] : activeMatch.answers2
-      });
-    } else {
-      setActiveMatch({
-        ...activeMatch,
-        index: nextIndex,
-        correct1: updated1,
-        correct2: updated2,
-        answers1: [...activeMatch.answers1, ans1],
-        answers2: ans2 ? [...activeMatch.answers2, ans2] : activeMatch.answers2
-      });
-    }
+    const { id, index, questions, deadline, mode, settings } = activeMatch;
+    const key = id + ':' + index;
+    if (recorded.current === key) return;
+    const expired = deadline !== undefined && Date.now() >= deadline;
+    if (expired) [home, away] = drafts.current;
+    const hasOpponent = mode !== 'solo';
+    if (hasOpponent && !expired && (!home.trim() || !away.trim())) return;
+    recorded.current = key;
+    drafts.current = ['', ''];
+    const completed: MatchState = {
+      ...activeMatch, index: index + 1,
+      deadline: settings?.seconds ? Date.now() + settings.seconds * 1000 : undefined,
+      correct1: activeMatch.correct1 + Number(correctAnswer(questions[index], home)),
+      correct2: activeMatch.correct2 + Number(hasOpponent && correctAnswer(questions[index], away)),
+      answers1: [...activeMatch.answers1, home],
+      answers2: hasOpponent ? [...activeMatch.answers2, away] : activeMatch.answers2,
+    };
+    if (completed.index >= questions.length) finishMatch(completed);
+    else setActiveMatch(completed);
   };
+  const expire = useEffectEvent(() => handleSubmitAnswer('', ''));
+  const deadline = activeMatch?.deadline;
+  useEffect(() => {
+    if (deadline === undefined) return;
+    let timer: number;
+    function check() {
+      const remaining = deadline! - Date.now();
+      if (remaining > 0) timer = window.setTimeout(check, remaining);
+      else expire();
+    }
+    timer = window.setTimeout(check, Math.max(0, deadline - Date.now()));
+    return () => window.clearTimeout(timer);
+  }, [deadline, activeMatch?.id, activeMatch?.index]);
 
   const finishMatch = (completedMatch: MatchState) => {
     const c = state.classes.find(x => x.id === completedMatch.classId);
-    const className = c ? c.name : '';
+    const profile = account?.accountKey === matchOwner.current ? account?.profile : undefined;
+    if (profile) {
+      const { id, mode, p1, p2, team1, team2, questions, correct1, correct2, answers1, answers2 } = completedMatch;
+      const sameClass = c?.grade === profile.grade && c.branch === profile.branch;
+      const home = mode === 'solo' || (sameClass && (mode === 'duel' ? p1 === profile.name : team1?.members.includes(profile.name)));
+      const away = sameClass && (mode === 'duel' ? p2 === profile.name : team2?.members.includes(profile.name));
+      if (home || away) recordResult({
+        id, kind: mode, scored: home ? correct1 : correct2, conceded: mode === 'solo' ? undefined : home ? correct2 : correct1,
+        total: questions.length, date: new Date().toISOString(),
+        attempts: mode === 'team' ? [] : questions.map((q, i) => studentAttempt(q, (home ? answers1 : answers2)[i] ?? '')),
+      });
+    }
+    const className = c?.name ?? (completedMatch.mode === 'solo' ? `${completedMatch.questions[0].grade}. sınıf · Hızlı maç` : '');
 
     let winner = 'Beraberlik';
     if (completedMatch.correct1 > completedMatch.correct2) {
@@ -315,6 +380,8 @@ export default function App() {
     } else if (completedMatch.correct2 > completedMatch.correct1) {
       winner = completedMatch.p2;
     }
+
+    if (completedMatch.mode === 'solo') winner = '';
 
     const dateStr = new Date().toLocaleString('tr-TR');
 
@@ -331,20 +398,22 @@ export default function App() {
       correct1: completedMatch.correct1,
       correct2: completedMatch.correct2,
       winner,
+      result: completedMatch.mode === 'solo' ? `${completedMatch.correct1}/${completedMatch.questions.length} gol` : undefined,
       answers1: completedMatch.answers1,
       answers2: completedMatch.answers2
     };
 
     setState(prev => {
+      if (prev.matches.some(item => item.id === completedMatch.id)) return prev;
       // Update Class Rankings
       const updatedClasses = prev.classes.map(cls => {
-        if (cls.id !== completedMatch.classId) return cls;
+        if (cls.id !== completedMatch.classId || completedMatch.mode !== 'duel') return cls;
         const r = { ...(cls.ranking || {}) };
 
         [completedMatch.p1, completedMatch.p2].filter(Boolean).forEach(pName => {
-          if (!r[pName]) {
-            r[pName] = { played: 0, wins: 0, draws: 0, losses: 0, correct: 0, points: 0 };
-          }
+          r[pName] = Object.hasOwn(r, pName)
+            ? { ...r[pName] }
+            : { played: 0, wins: 0, draws: 0, losses: 0, correct: 0, points: 0 };
         });
 
         if (completedMatch.mode === 'duel') {
@@ -377,16 +446,21 @@ export default function App() {
       });
 
       // Update Fixture Status
+      const pendingFixture = completedMatch.mode !== 'solo' && prev.fixtures.find(fixture => {
+        if (fixture.status !== 'Bekliyor' || fixture.classId !== completedMatch.classId ||
+          (fixture.mode ?? 'duel') !== completedMatch.mode) return false;
+        if (completedMatch.fixtureId) return fixture.id === completedMatch.fixtureId;
+        const [home, away] = fixture.teamIds ?? [fixture.p1, fixture.p2];
+        const a = completedMatch.team1?.id ?? completedMatch.p1;
+        const b = completedMatch.team2?.id ?? completedMatch.p2;
+        return (home === a && away === b) || (home === b && away === a);
+      });
       const updatedFixtures = prev.fixtures.map(fx => {
-        if (
-          fx.classId === completedMatch.classId &&
-          ((fx.p1 === completedMatch.p1 && fx.p2 === completedMatch.p2) ||
-            (fx.p1 === completedMatch.p2 && fx.p2 === completedMatch.p1))
-        ) {
+        if (pendingFixture && pendingFixture.id === fx.id) {
           return {
             ...fx,
             status: 'Tamamlandı' as const,
-            result: winner === 'Beraberlik' ? `Beraberlik (${completedMatch.correct1}-${completedMatch.correct2})` : `${winner} Kazandı`
+            result: `${completedMatch.p1} ${completedMatch.correct1}–${completedMatch.correct2} ${completedMatch.p2}`
           };
         }
         return fx;
@@ -403,15 +477,7 @@ export default function App() {
       };
     });
 
-    setWinnerData({
-      winner,
-      p1: completedMatch.p1,
-      p2: completedMatch.p2,
-      s1: completedMatch.correct1,
-      s2: completedMatch.correct2,
-      isTeam: completedMatch.mode === 'team'
-    });
-
+    setWinnerData(completedMatch);
     setActiveMatch(null);
   };
 
@@ -446,25 +512,24 @@ export default function App() {
     }
   };
 
-  /* Rankings Calculator */
-  const getRankings = () => {
-    const list: Array<{ class: string; name: string; played: number; wins: number; draws: number; losses: number; correct: number; points: number }> = [];
-    state.classes.forEach(c => {
-      c.students.forEach(sName => {
-        const r = c.ranking?.[sName] || { played: 0, wins: 0, draws: 0, losses: 0, correct: 0, points: 0 };
-        list.push({ class: c.name, name: sName, ...r });
-      });
-    });
-    return list.sort((a, b) => b.points - a.points || b.correct - a.correct);
+  const recordTraining = (grade: string, correct: number, total: number) => {
+    const record: MatchHistoryRecord = {
+      id: uid(), date: new Date().toLocaleString('tr-TR'),
+      classId: '', className: `${grade}. sınıf`, p1: '', p2: '',
+      correct1: correct, correct2: 0, winner: '', answers1: [], answers2: [],
+      type: 'Antrenman', result: `${grade}. sınıf · ${correct}/${total} doğru`,
+    };
+    setState(previous => ({ ...previous, history: [record, ...previous.history] }));
   };
 
   return (
-    <div className="min-h-screen bg-[#0b1128] text-[#f7f8ff] font-sans pb-12">
+    <div className="league-app min-h-screen pb-12">
       {/* Header */}
       <Header
         state={state}
         activeSection={activeSection}
         setActiveSection={setActiveSection}
+        crest={account?.profile?.crest}
         toggleSound={toggleSound}
         openAICoach={() => setAiCoachOpen(true)}
       />
@@ -472,8 +537,12 @@ export default function App() {
       {/* Main Container */}
       <main className="max-w-6xl mx-auto px-4 pt-4">
         {activeSection === 'home' && (
-          <HomeSection onNavigate={setActiveSection} onQuickMatch={handleQuickMatch} />
+          <HomeSection onNavigate={setActiveSection} onMatch={openMatchSetup} />
         )}
+
+        <div hidden={activeSection !== 'training'}>
+          <TrainingSection onComplete={recordTraining} />
+        </div>
 
         {activeSection === 'classes' && (
           <ClassesSection
@@ -482,7 +551,7 @@ export default function App() {
             onAddStudent={handleAddStudents}
             onEditStudents={handleEditStudents}
             onDeleteClass={handleDeleteClass}
-            onMakeFixture={handleMakeFixture}
+            onMakeFixture={classId => alert(handleMakeFixture(classId))}
           />
         )}
 
@@ -490,12 +559,24 @@ export default function App() {
           <LeagueSection
             classes={state.classes}
             fixtures={state.fixtures}
-            rankings={getRankings()}
+            teams={state.teams}
+            matches={state.matches}
+            mode={leagueMode}
+            onModeChange={setLeagueMode}
+            onSaveTeam={handleSaveTeam}
+            onDeleteTeam={handleDeleteTeam}
+            onOpenClasses={() => setActiveSection('classes')}
             activeMatch={activeMatch}
             onStartMatch={handleStartMatch}
             onSubmitAnswer={handleSubmitAnswer}
+            profile={account?.profile}
+            onRecordOnline={account?.profile ? recordResult : undefined}
+            drafts={drafts.current}
+            onDraft={(home, away) => {
+              if (!activeMatch?.deadline || Date.now() < activeMatch.deadline) drafts.current = [home, away];
+            }}
             onGenerateFixtures={handleMakeFixture}
-            onQuickMatch={handleQuickMatch}
+            onCancelMatch={() => { if (confirm('Maçtan ayrılmak istiyor musun?')) setActiveMatch(null); }}
           />
         )}
 
@@ -503,31 +584,25 @@ export default function App() {
           <GamesSection onGameFinish={handleGameFinish} />
         )}
 
-        {activeSection === 'math' && <MathSection />}
+        {activeSection === 'profile' && <StudentProfile account={account} error={accountError}
+          onRetry={() => void (account ? flushResults(account.accountKey) : loadAccount())}
+          onSaved={(profile: Profile) => setAccount(current => current ? { ...current, profile } : current)}
+          onRecord={recordResult} syncError={syncError} />}
 
-        {activeSection === 'why' && <WhySection />}
 
         {activeSection === 'weekly' && <WeeklySection />}
 
         {activeSection === 'reports' && (
           <ReportsSection
             state={state}
-            onRestoreBackup={json => setState({ ...defaultState, ...json })}
+            onRestoreBackup={json => setState({ ...defaultState, ...json, teams: Array.isArray(json.teams) ? json.teams : [] })}
           />
         )}
       </main>
 
       {/* Winner Modal */}
       {winnerData && (
-        <WinnerModal
-          winner={winnerData.winner}
-          p1Name={winnerData.p1}
-          p2Name={winnerData.p2}
-          score1={winnerData.s1}
-          score2={winnerData.s2}
-          isTeam={winnerData.isTeam}
-          onClose={() => setWinnerData(null)}
-        />
+        <WinnerModal match={winnerData} onClose={() => setWinnerData(null)} />
       )}
 
       {/* AI Coach Modal */}

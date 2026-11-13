@@ -23,25 +23,53 @@ export interface Fixture {
   p2: string;
   status: 'Bekliyor' | 'Tamamlandı';
   result: string | null;
+  mode?: 'duel' | 'team';
+  teamIds?: [string, string];
 }
 
+export type Course = 'turkish' | 'mathematics' | 'science' | 'social' | 'religion' | 'english';
+export type MatchSettings = { course: Course | 'all'; format: 'open' | 'multiple'; seconds: number; outcomeCode?: string };
+export type Figure = { kind: 'rectangle' | 'triangle'; width: number; height: number; hideWidth?: boolean; diagonal?: boolean } |
+  { kind: 'bars'; values: number[] };
 export interface Question {
+  course?: Course;
+  outcome?: string;
+  outcomeCode?: string;
+  options?: string[];
+  distractors?: string[];
+  alternatives?: string[];
+  figure?: Figure;
   grade: number | string;
   difficulty: 'kolay' | 'orta' | 'zor';
   subject: string;
   q: string;
   a: string;
   source?: string;
+  sourceUrl?: string;
+  category?: 'context' | 'adaptation';
+  family?: string;
   explanation?: string;
 }
 
 export interface Team {
+  id?: string;
   name: string;
   members: string[];
 }
 
+export interface ClassTeam extends Team {
+  id: string;
+  classId: string;
+}
+
+export type MatchSetup = { settings?: MatchSettings } & (
+  | { mode: 'solo'; grade: string }
+  | { mode: 'duel'; classId: string; p1: string; p2: string; fixtureId?: string }
+  | { mode: 'team'; classId: string; team1Id: string; team2Id: string; fixtureId?: string });
+
 export interface MatchState {
   id: string;
+  fixtureId?: string;
   classId: string;
   p1: string;
   p2: string;
@@ -49,6 +77,8 @@ export interface MatchState {
   team1?: Team;
   team2?: Team;
   index: number;
+  settings?: MatchSettings;
+  deadline?: number;
   questions: Question[];
   answers1: string[];
   answers2: string[];
@@ -85,6 +115,7 @@ export interface AppState {
   soundEnabled: boolean;
   classes: StudentClass[];
   fixtures: Fixture[];
+  teams: ClassTeam[];
   matches: MatchHistoryRecord[];
   history: MatchHistoryRecord[];
   games: {
@@ -118,12 +149,6 @@ export interface ApartmanPuzzle {
   bottom: number[];
   left: number[];
   right: number[];
-}
-
-export interface RebusPuzzle {
-  display: string;
-  answer: string;
-  source: string;
 }
 
 export type GameType = 'sudoku' | 'kendoku' | 'apartman' | 'resfebe' | 'blitz';

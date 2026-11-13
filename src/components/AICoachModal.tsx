@@ -1,137 +1,119 @@
-import React, { useState } from 'react';
-import { Sparkles, X, Send, Bot, RefreshCw } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Bot, Sparkles, X } from 'lucide-react';
+import type { Question } from '../types';
+import { coachTopics, localCoachQuestion, requestCoach } from '../utils/coach';
 import { sound } from '../utils/sound';
 
-interface AICoachModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
+const field = 'mt-1 block w-full rounded-xl border border-white/15 bg-[#171f42] p-2.5 text-white';
+type CoachQuestion = Pick<Question, 'q' | 'a' | 'subject' | 'explanation' | 'source' | 'sourceUrl'>;
 
-export const AICoachModal: React.FC<AICoachModalProps> = ({ isOpen, onClose }) => {
-  const [grade, setGrade] = useState<string>('7');
-  const [topic, setTopic] = useState<string>('Rasyonel Sayılar ve Mantık');
-  const [difficulty, setDifficulty] = useState<string>('orta');
-  const [loading, setLoading] = useState<boolean>(false);
-  const [generatedQuestion, setGeneratedQuestion] = useState<any>(null);
+export function AICoachModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const [grade, setGrade] = useState('7');
+  const [topic, setTopic] = useState('');
+  const [difficulty, setDifficulty] = useState<Question['difficulty']>('orta');
+  const [gemini, setGemini] = useState<boolean>();
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<{ question: CoachQuestion; local: boolean }>();
+  const [message, setMessage] = useState('');
+  const recent = useRef<string[]>([]);
+  const topics = coachTopics(grade, difficulty);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let active = true;
+    setGemini(undefined);
+    fetch('/api/ai/status', { signal: AbortSignal.timeout(3500) })
+      .then(response => response.ok ? response.json() : null)
+      .then(status => { if (active) setGemini(status?.available === true); })
+      .catch(() => { if (active) setGemini(false); });
+    return () => { active = false; };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const handleGenerateCustomQuestion = async () => {
+  async function generateQuestion() {
     sound.playClick();
     setLoading(true);
-    setGeneratedQuestion(null);
+    setResult(undefined);
+    setMessage('');
     try {
-      const res = await fetch('/api/ai/generate-question', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ grade, topic, difficulty }),
-      });
-      const data = await res.json();
-      if (data.q) {
-        setGeneratedQuestion(data);
-        sound.playSuccess();
-      } else {
-        alert(data.error || 'Soru üretilemedi.');
+      if (gemini === true) {
+        try {
+          const question = await requestCoach('generate-question', { grade, topic, difficulty });
+          if (!question?.q || !question?.a || !question?.explanation) throw new Error();
+          setResult({ question, local: false });
+          sound.playSuccess();
+          return;
+        } catch {
+          setMessage('Gemini yanıt vermedi. Uygun soru varsa havuzdan gösteriliyor.');
+        }
       }
-    } catch {
-      alert('AI sunucusuna ulaşılamadı.');
+      const question = localCoachQuestion(grade, difficulty, topic, recent.current);
+      if (!question) {
+        setMessage('Bu konuda eşleşen soru bulunamadı. Önerilen konulardan birini seç veya konu alanını boş bırak.');
+        return;
+      }
+      recent.current = [...recent.current.slice(-49), question.q];
+      setResult({ question, local: true });
+      sound.playSuccess();
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="bg-[#171f42] border border-purple-500/40 rounded-3xl p-6 w-full max-w-xl space-y-4 shadow-2xl relative max-h-[90vh] overflow-y-auto">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white"
-        >
-          <X className="w-5 h-5" />
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-4 backdrop-blur-md" onKeyDown={event => { if (event.key === 'Escape') onClose(); }}>
+      <div role="dialog" aria-modal="true" aria-labelledby="coach-title" className="relative max-h-[90vh] w-full max-w-xl space-y-4 overflow-y-auto rounded-3xl border border-purple-500/40 bg-[#171f42] p-5 sm:p-6">
+        <button type="button" onClick={onClose} aria-label="Koçu kapat" className="absolute right-3 top-3 rounded-xl bg-white/5 p-2 text-slate-200 hover:bg-white/10">
+          <X className="size-5" aria-hidden="true" />
         </button>
-
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white text-xl shadow-lg shadow-purple-500/30">
-            <Bot className="w-6 h-6" />
+        <div className="flex items-start gap-3 pr-9">
+          <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-violet-500/30">
+            <Bot className="size-6 text-violet-200" aria-hidden="true" />
           </div>
           <div>
-            <h3 className="text-lg font-black text-white flex items-center gap-2">
-              AI Zekâ Koçu & Soru Üreteci
-            </h3>
-            <p className="text-xs text-slate-300">Gemini 3.8 AI ile MEB/LGS tarzı özgün soru üretin!</p>
+            <h3 id="coach-title" className="text-lg font-black">Zekâ Koçu</h3>
+            <p className="text-sm text-slate-300">
+              {gemini === undefined ? 'Bağlantı kontrol ediliyor…' : gemini ? 'Gemini ile soru oluştur ve çözüm adımlarını incele.' : 'Gemini bağlı değil. Soru havuzundan çözümlü alıştırma seçebilirsin.'}
+            </p>
           </div>
         </div>
-
-        <div className="bg-[#0e1530] border border-white/10 rounded-2xl p-4 space-y-3">
-          <h4 className="text-xs font-bold text-cyan-300">Özgün Soru Kriterleri:</h4>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-            <div>
-              <label className="block text-slate-400 mb-1">Sınıf Seviyesi</label>
-              <select
-                value={grade}
-                onChange={e => setGrade(e.target.value)}
-                className="w-full bg-[#171f42] border border-white/10 text-white rounded-xl p-2 outline-none"
-              >
-                <option value="5">5. Sınıf</option>
-                <option value="6">6. Sınıf</option>
-                <option value="7">7. Sınıf</option>
-                <option value="8">8. Sınıf (LGS)</option>
+        <form className="space-y-3 rounded-2xl border border-white/10 bg-[#0e1530] p-4" onSubmit={event => { event.preventDefault(); if (!loading) void generateQuestion(); }}>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <label>Sınıf
+              <select value={grade} onChange={event => setGrade(event.target.value)} className={field}>
+                {[5, 6, 7, 8].map(value => <option key={value} value={value}>{value}. sınıf</option>)}
               </select>
-            </div>
-
-            <div>
-              <label className="block text-slate-400 mb-1">Zorluk</label>
-              <select
-                value={difficulty}
-                onChange={e => setDifficulty(e.target.value)}
-                className="w-full bg-[#171f42] border border-white/10 text-white rounded-xl p-2 outline-none"
-              >
-                <option value="kolay">Kolay 🟢</option>
-                <option value="orta">Orta 🟡</option>
-                <option value="zor">Zor 🔴</option>
+            </label>
+            <label>Zorluk
+              <select value={difficulty} onChange={event => setDifficulty(event.target.value as Question['difficulty'])} className={field}>
+                <option value="kolay">Kolay</option><option value="orta">Orta</option><option value="zor">Zor</option>
               </select>
-            </div>
-
-            <div>
-              <label className="block text-slate-400 mb-1">Konu Başlığı</label>
-              <input
-                type="text"
-                value={topic}
-                onChange={e => setTopic(e.target.value)}
-                className="w-full bg-[#171f42] border border-white/10 text-white rounded-xl p-2 outline-none"
-              />
-            </div>
+            </label>
+            <label className="col-span-2">Konu
+              <input value={topic} onChange={event => setTopic(event.target.value)} list="coach-topics" placeholder="Boş bırakılırsa tüm konular" maxLength={120} className={field} />
+              <datalist id="coach-topics">{topics.map(value => <option key={value} value={value} />)}</datalist>
+            </label>
           </div>
-
-          <button
-            onClick={handleGenerateCustomQuestion}
-            disabled={loading}
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-extrabold text-xs shadow-lg hover:brightness-110 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
-          >
-            <Sparkles className="w-4 h-4 text-yellow-300" />
-            {loading ? 'AI Yeni Soru Tasarlıyor...' : '✨ Özgün Soru Üret'}
+          <button type="submit" disabled={loading} className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-violet-300 px-4 py-2 text-sm font-extrabold text-[#1a1231] hover:bg-violet-200 disabled:opacity-50">
+            <Sparkles className="size-4" aria-hidden="true" />
+            {loading ? 'Soru hazırlanıyor…' : gemini ? 'Soru Üret' : 'Havuzdan Soru Seç'}
           </button>
-        </div>
-
-        {/* Display Generated Question */}
-        {generatedQuestion && (
-          <div className="bg-purple-950/40 border border-purple-500/40 rounded-2xl p-4 space-y-3 animate-fadeIn text-xs">
-            <div className="flex items-center justify-between text-cyan-300 font-bold">
-              <span>📌 {generatedQuestion.subject || 'Özgün Soru'}</span>
-              <span>Cevap: <b className="text-emerald-400 font-mono text-sm">{generatedQuestion.a}</b></span>
-            </div>
-            <div className="bg-[#0b1128] border border-white/10 rounded-xl p-3 text-white text-sm leading-relaxed font-medium">
-              {generatedQuestion.q}
-            </div>
-            {generatedQuestion.explanation && (
-              <div className="text-slate-300 leading-relaxed pt-1">
-                <b className="text-purple-300 block mb-1">💡 Adım Adım Çözüm:</b>
-                {generatedQuestion.explanation}
-              </div>
-            )}
+        </form>
+        {message && <p role="status" className="text-sm text-amber-200">{message}</p>}
+        {result && (
+          <div className="space-y-3 rounded-2xl border border-purple-400/40 bg-purple-950/40 p-4 text-sm">
+            <p className="font-bold text-cyan-200">{result.question.subject} · {result.local ? 'Soru havuzu' : 'Gemini'}</p>
+            <p className="rounded-xl bg-[#0b1128] p-3 leading-relaxed">{result.question.q}</p>
+            <details key={result.question.q}>
+              <summary className="cursor-pointer font-bold text-violet-200">Cevabı ve Çözümü Göster</summary>
+              <p className="mt-2 text-emerald-200">Cevap <strong>{result.question.a}</strong></p>
+              <p className="mt-2 whitespace-pre-line leading-relaxed text-slate-200">{result.question.explanation}</p>
+              {result.question.sourceUrl && <a className="mt-2 inline-block text-cyan-300 underline" href={result.question.sourceUrl} target="_blank" rel="noopener noreferrer">Uyarlama kaynağı · {result.question.source} ↗</a>}
+            </details>
           </div>
         )}
       </div>
     </div>
   );
-};
+}
